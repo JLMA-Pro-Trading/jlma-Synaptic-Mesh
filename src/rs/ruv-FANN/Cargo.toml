@@ -9,6 +9,9 @@ repository = "https://github.com/ruvnet/ruv-FANN"
 license = "MIT OR Apache-2.0"
 keywords = ["neural-network", "machine-learning", "fann", "ai", "deep-learning"]
 categories = ["science", "algorithms", "mathematics"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
 exclude = [
     "node_modules/**",
     ".git/**",

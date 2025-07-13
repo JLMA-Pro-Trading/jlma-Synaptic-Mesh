@@ -1,6 +1,6 @@
 {
   "name": "synaptic-mesh",
-  "version": "1.0.0",
+  "version": "1.0.0-alpha.1",
   "description": "🧠 Synaptic Neural Mesh - Self-evolving distributed neural fabric with quantum-resistant DAG networking",
   "keywords": [
     "neural-mesh",
@@ -56,7 +56,12 @@
     "format": "prettier --write 'src/**/*.{ts,js,json}'",
     "quality:check": "npm run lint && npm run test",
     "prepublishOnly": "npm run quality:check && npm run build",
-    "postinstall": "node scripts/postinstall.js",
+    "publish:alpha": "npm publish --tag alpha",
+    "publish:beta": "npm publish --tag beta",
+    "publish:latest": "npm publish",
+    "test:npx": "node scripts/test-npx.sh",
+    "validate:global": "npm pack && node scripts/validate-global.js",
+    "postinstall": "node scripts/postinstall.js || echo 'Postinstall script skipped'",
     "start": "node bin/synaptic-mesh",
     "dev": "ts-node src/cli.ts"
   },
@@ -113,7 +118,8 @@
   },
   "publishConfig": {
     "access": "public",
-    "registry": "https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org/",
+    "tag": "alpha"
   },
   "synaptic": {
     "defaultPort": 8080,

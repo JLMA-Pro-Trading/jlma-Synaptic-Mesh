@@ -26,62 +26,29 @@ js-sys = "0.3"
 web-sys = { version = "0.3", features = [
   "console", "Performance", "Window", "Worker", "MessageChannel",
   "Gpu", "GpuAdapter", "GpuDevice", "GpuBuffer", "GpuCommandEncoder",
-  "GpuComputePipeline", "GpuBindGroup", "GpuQueue"
+  "GpuComputePipeline", "GpuBindGroup", "GpuQueue", "Document",
+  "Element", "HtmlCanvasElement", "WebGl2RenderingContext",
+  "WebGlProgram", "WebGlShader", "WebGlBuffer", "WebGlTexture",
+  "WebGlUniformLocation", "MessageEvent", "MessagePort",
+  "BroadcastChannel", "SharedArrayBuffer", "GpuTexture",
+  "GpuComputePassEncoder", "GpuPipelineLayout", "GpuShaderModule",
+  "GpuCanvasContext", "OffscreenCanvas", "ImageData", "Storage"
 ] }
 
 # Error handling
 wasm-bindgen-futures = "0.4"
-console_error_panic_hook = "0.1"
+console_error_panic_hook = { version = "0.1", optional = true }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde-wasm-bindgen = "0.6"
 
 # Performance
-rayon = { version = "1.8", features = ["web_spin_lock"] }
+rayon = { version = "1.8", features = ["web_spin_lock"], optional = true }
 
 # Utilities
 uuid = { version = "1.0", features = ["v4", "js"] }
 getrandom = { version = "0.2", features = ["js"] }
-
-[dependencies.web-sys]
-version = "0.3"
-features = [
-  "console",
-  "Performance",
-  "Window",
-  "Document",
-  "Element",
-  "HtmlCanvasElement",
-  "WebGl2RenderingContext",
-  "WebGlProgram",
-  "WebGlShader",
-  "WebGlBuffer",
-  "WebGlTexture",
-  "WebGlUniformLocation",
-  "Worker",
-  "MessageEvent",
-  "MessageChannel",
-  "MessagePort",
-  "BroadcastChannel",
-  "SharedArrayBuffer",
-  "Gpu",
-  "GpuAdapter", 
-  "GpuDevice",
-  "GpuQueue",
-  "GpuBuffer",
-  "GpuTexture",
-  "GpuBindGroup",
-  "GpuCommandEncoder",
-  "GpuComputePassEncoder",
-  "GpuComputePipeline",
-  "GpuPipelineLayout",
-  "GpuShaderModule",
-  "GpuCanvasContext",
-  "OffscreenCanvas",
-  "ImageData",
-  "Storage",
-]
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3"

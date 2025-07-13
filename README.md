@@ -19,9 +19,9 @@ Imagine a world where artificial intelligence isn't confined to massive data cen
 
 **Synaptic Neural Mesh**: Many tiny, purpose-built networks, distributed, accessible, owned by everyone
 
-### 🧠 **The Power of Many Small Minds**
+### 🧠 **The Power of Many Micro-Minds**
 
-Instead of one massive billion-parameter model, Synaptic Neural Mesh deploys **thousands of tiny, specialized neural networks**:
+Instead of one massive billion+ parameter model, Synaptic Neural Mesh deploys **thousands of tiny, specialized neural networks**:
 
 - 🔬 **Micro-networks**: 1K-100K parameters each, purpose-built for specific tasks
 - ⚡ **Lightning-fast**: Sub-100ms inference on any device
