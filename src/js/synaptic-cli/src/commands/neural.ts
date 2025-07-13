@@ -232,44 +232,6 @@ function neuralInferCommand(): Command {
     });
 
   return command;
-  
-  command
-    .description('Spawn a new neural agent')
-    .option('-t, --type <type>', 'Neural network type (mlp/lstm/cnn/particle)', 'mlp')
-    .option('-n, --name <name>', 'Agent name')
-    .option('--task <task>', 'Initial task assignment')
-    .action(async (options: any) => {
-      const spinner = ora('Spawning neural agent...').start();
-      
-      try {
-        const agentId = uuidv4().slice(0, 8);
-        const agentName = options.name || `agent-${agentId}`;
-        
-        // Simulate agent spawning
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        spinner.succeed(chalk.green(`✅ Neural agent spawned: ${agentName}`));
-        
-        console.log('\n' + chalk.cyan('🤖 Agent Details:'));
-        console.log(chalk.gray('─'.repeat(40)));
-        console.log(`ID: ${agentId}`);
-        console.log(`Name: ${agentName}`);
-        console.log(`Type: ${options.type}`);
-        console.log(`Status: ${chalk.green('Active')}`);
-        console.log(`Memory: < 50MB`);
-        console.log(chalk.gray('─'.repeat(40)));
-        
-        if (options.task) {
-          console.log(`\nAssigned task: ${options.task}`);
-        }
-      } catch (error: any) {
-        spinner.fail(chalk.red('Failed to spawn agent'));
-        console.error(error?.message || error);
-        process.exit(1);
-      }
-    });
-
-  return command;
 }
 
 function neuralListCommand(): Command {
@@ -513,3 +475,4 @@ function neuralBenchmarkCommand(): Command {
     });
 
   return command;
+}

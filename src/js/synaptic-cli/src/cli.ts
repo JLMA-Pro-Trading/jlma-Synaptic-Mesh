@@ -12,6 +12,7 @@ import { peerCommand } from './commands/peer';
 import { statusCommand } from './commands/status';
 import { stopCommand } from './commands/stop';
 import { configCommand } from './commands/config';
+import { kimiCommand } from './commands/kimi';
 
 // ASCII Art Logo
 const logo = chalk.cyan(`
@@ -60,6 +61,7 @@ program.on('--help', () => {
   console.log('  $ synaptic-mesh start --port 8080          # Start mesh node on port 8080');
   console.log('  $ synaptic-mesh mesh join peer.address     # Join existing mesh network');
   console.log('  $ synaptic-mesh neural spawn --type mlp    # Spawn a neural agent');
+  console.log('  $ synaptic-mesh kimi chat "Hello AI!"      # Chat with Kimi-K2 AI model');
   console.log('  $ synaptic-mesh status                     # Check mesh status');
   console.log('');
   console.log('Documentation:');
@@ -83,6 +85,7 @@ program.addCommand(peerCommand());
 program.addCommand(statusCommand());
 program.addCommand(stopCommand());
 program.addCommand(configCommand());
+program.addCommand(kimiCommand());
 
 // Error handling
 program.exitOverride((err) => {

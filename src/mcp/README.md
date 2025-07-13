@@ -1,448 +1,288 @@
-# Synaptic Neural Mesh - MCP Integration
+# Synaptic Neural Mesh MCP Server
 
-A comprehensive Model Context Protocol (MCP) implementation for the Synaptic Neural Mesh distributed neural fabric. This integration enables AI assistants to interact with the mesh through standardized JSON-RPC 2.0 protocols.
+## Kimi-K2 Integration
 
-## 🌟 Features
+The Synaptic Neural Mesh MCP Server now includes comprehensive integration with Kimi-K2 AI models through multiple providers.
 
-- **27+ Neural Mesh Tools** - Complete suite of MCP tools for distributed neural operations
-- **Multi-Transport Support** - stdio, HTTP, and WebSocket communication layers
-- **Real-time Event Streaming** - Live updates and notifications for mesh activities
-- **WASM Bridge Integration** - Direct connection to Rust WASM modules (QuDAG, ruv-swarm, DAA)
-- **Authentication & Security** - API key management, rate limiting, and encryption
-- **High Performance** - Connection pooling, caching, and optimized processing
-- **Comprehensive Testing** - Full test suite with integration and performance tests
+### Features
 
-## 🚀 Quick Start
+- **Multi-Provider Support**: Moonshot AI, OpenRouter, and local LLM support
+- **Tool Calling**: Full function calling capabilities
+- **128k Context Window**: Extended context management for long conversations
+- **Streaming Responses**: Real-time response streaming
+- **Error Handling**: Robust error handling and fallback mechanisms
+- **Context Management**: Intelligent context window management
+
+### Providers
+
+#### Moonshot AI
+- Native Kimi-K2 models
+- 128k context window
+- Optimized for Chinese and English
+- Best performance for neural mesh tasks
+
+#### OpenRouter
+- Access to multiple AI providers
+- Claude, GPT-4, Llama, and more
+- Up to 200k context window
+- Fallback options
+
+#### Local (Ollama)
+- Privacy-focused local inference
+- No API costs
+- Offline capabilities
+- Hardware-dependent performance
 
 ### Installation
 
+1. **Environment Setup**:
 ```bash
-cd src/mcp
+# Required for Moonshot AI
+export MOONSHOT_API_KEY="your-moonshot-api-key"
+
+# Required for OpenRouter
+export OPENROUTER_API_KEY="your-openrouter-api-key"
+
+# Optional for local LLM
+export LOCAL_LLM_URL="http://localhost:11434/v1"
+```
+
+2. **Install Dependencies**:
+```bash
 npm install
 ```
 
-### Basic Usage
-
+3. **Start MCP Server**:
 ```bash
-# Start MCP server with stdio transport
-npm start
+npm run start:mcp
+```
 
-# Start with HTTP transport
-node cli.js start --transport http --port 3000
+### Usage
 
-# Start with authentication enabled
-node cli.js start --auth --config ./config.json
+#### MCP Tools
 
-# Show available tools
-node cli.js tools
+##### Chat Completion
+```typescript
+await mcpServer.executeTool('kimi_chat_completion', {
+  provider: 'moonshot',
+  messages: [
+    { role: 'system', content: 'You are a neural network expert.' },
+    { role: 'user', content: 'Explain synaptic neural meshes.' }
+  ],
+  temperature: 0.7,
+  max_tokens: 1000
+});
+```
 
-# Run tests
-npm test
+##### Tool Calling
+```typescript
+await mcpServer.executeTool('kimi_chat_completion', {
+  provider: 'moonshot',
+  messages: [
+    { role: 'user', content: 'Get the current mesh status.' }
+  ],
+  tools: [{
+    type: 'function',
+    function: {
+      name: 'mesh_status',
+      description: 'Get neural mesh status',
+      parameters: {
+        type: 'object',
+        properties: {
+          meshId: { type: 'string' }
+        }
+      }
+    }
+  }],
+  tool_choice: 'auto'
+});
+```
+
+##### Context Management
+```typescript
+await mcpServer.executeTool('kimi_context_management', {
+  messages: longConversation,
+  context_window: 128000,
+  strategy: 'sliding_window'
+});
+```
+
+##### Provider Testing
+```typescript
+await mcpServer.executeTool('kimi_provider_test', {
+  providers: ['moonshot', 'openrouter', 'local'],
+  timeout: 30000
+});
+```
+
+##### Model Listing
+```typescript
+await mcpServer.executeTool('kimi_model_list', {
+  provider: 'all'
+});
+```
+
+#### Direct Client Usage
+
+```typescript
+import { KimiClient, KimiMultiProvider } from '../js/synaptic-cli/lib/kimi-client.js';
+
+// Single provider
+const client = new KimiClient({
+  provider: 'moonshot',
+  apiKey: process.env.MOONSHOT_API_KEY,
+  model: 'moonshot-v1-128k'
+});
+
+const response = await client.chatCompletion({
+  model: 'moonshot-v1-128k',
+  messages: [{ role: 'user', content: 'Hello!' }]
+});
+
+// Multi-provider with fallback
+const multiProvider = new KimiMultiProvider();
+multiProvider.addProvider('moonshot', { ... });
+multiProvider.addProvider('openrouter', { ... });
+
+const bestProvider = await multiProvider.getBestProvider();
+```
+
+#### Streaming Responses
+
+```typescript
+await client.streamChatCompletion({
+  model: 'moonshot-v1-128k',
+  messages: [{ role: 'user', content: 'Explain neural networks...' }],
+  stream: true
+}, (chunk) => {
+  if (chunk.choices?.[0]?.delta?.content) {
+    process.stdout.write(chunk.choices[0].delta.content);
+  }
+});
+```
+
+### Neural Mesh Integration
+
+The Kimi integration seamlessly works with existing neural mesh tools:
+
+```typescript
+// AI can call neural mesh functions
+const response = await client.chatCompletion({
+  messages: [
+    { role: 'user', content: 'Create a new neural mesh and add 10 neurons' }
+  ],
+  tools: [
+    { type: 'function', function: { name: 'mesh_initialize', ... } },
+    { type: 'function', function: { name: 'neuron_spawn', ... } }
+  ]
+});
+
+// Execute the tool calls
+if (response.choices[0].message.tool_calls) {
+  for (const toolCall of response.choices[0].message.tool_calls) {
+    const result = await client.executeToolCall(toolCall, availableTools);
+    console.log('Tool result:', result);
+  }
+}
 ```
 
 ### Configuration
 
-Create a configuration file:
-
-```bash
-node cli.js config init
-```
-
-Example configuration:
+Provider configuration is stored in `config/kimi-providers.json`:
 
 ```json
 {
-  "transport": "stdio",
-  "port": 3000,
-  "enableAuth": false,
-  "enableEvents": true,
-  "wasmEnabled": true,
-  "logLevel": "info",
-  "rateLimits": {
-    "requests": 100,
-    "window": 60000
-  },
-  "apiKeys": [
-    {
-      "key": "your-api-key-here",
-      "name": "main-key", 
-      "permissions": ["neural_*", "mesh_*"]
+  "providers": {
+    "moonshot": {
+      "baseUrl": "https://api.moonshot.cn/v1",
+      "defaultModel": "moonshot-v1-128k",
+      "contextWindow": 128000
     }
-  ]
+  }
 }
 ```
 
-## 🛠️ Neural Mesh Tools
+### Error Handling
 
-### Core Tools
+The integration includes comprehensive error handling:
 
-#### `neural_mesh_init`
-Initialize a neural mesh topology with specified configuration.
+- **Network timeouts**: Configurable timeout with automatic retries
+- **API errors**: Graceful handling of 4xx/5xx responses
+- **Fallback providers**: Automatic fallback to alternative providers
+- **Context limits**: Intelligent context window management
+- **Rate limiting**: Built-in rate limit handling
 
-```json
-{
-  "topology": "mesh|hierarchical|ring|star|hybrid",
-  "maxAgents": 10,
-  "strategy": "parallel|sequential|adaptive|balanced",
-  "enableConsensus": true,
-  "cryptoLevel": "basic|quantum|post-quantum"
-}
-```
+### Testing
 
-#### `neural_agent_spawn`
-Spawn specialized neural agents in the mesh.
-
-```json
-{
-  "meshId": "mesh-id",
-  "type": "coordinator|researcher|coder|analyst|architect|tester|reviewer|optimizer|documenter|monitor|specialist",
-  "name": "agent-name",
-  "capabilities": ["capability1", "capability2"],
-  "neuralModel": "model-type",
-  "resources": {"cpu": 1, "memory": 512}
-}
-```
-
-#### `neural_consensus`
-Coordinate neural decisions through DAG consensus.
-
-```json
-{
-  "meshId": "mesh-id",
-  "proposal": {"action": "update", "value": 123},
-  "agents": ["agent1", "agent2", "agent3"],
-  "consensusType": "majority|supermajority|unanimous|weighted"
-}
-```
-
-### Memory Operations
-
-#### `mesh_memory_store`
-Store data in distributed mesh memory.
-
-```json
-{
-  "key": "storage-key",
-  "value": {"any": "data"},
-  "namespace": "default",
-  "ttl": 3600,
-  "replicas": 3
-}
-```
-
-#### `mesh_memory_retrieve`
-Retrieve data from distributed mesh memory.
-
-```json
-{
-  "key": "storage-key",
-  "namespace": "default"
-}
-```
-
-### Training & Performance
-
-#### `neural_train`
-Coordinate distributed neural training across mesh.
-
-```json
-{
-  "meshId": "mesh-id",
-  "modelType": "feedforward|cnn|rnn|transformer",
-  "trainingData": {"inputs": [], "outputs": []},
-  "epochs": 100,
-  "distributionStrategy": "data_parallel|model_parallel|pipeline"
-}
-```
-
-#### `mesh_performance`
-Get real-time performance metrics.
-
-```json
-{
-  "meshId": "mesh-id",
-  "metrics": ["cpu", "memory", "throughput"],
-  "timeframe": "1h|24h|7d"
-}
-```
-
-### Advanced Tools
-
-- `neural_pattern_recognize` - Pattern recognition in neural mesh data
-- `mesh_topology_optimize` - Dynamic topology optimization
-- `neural_ensemble_create` - Multi-model coordination
-- `mesh_fault_tolerance` - Fault tolerance configuration
-- `load_balance` - Computational load distribution
-- `security_encrypt/decrypt` - Mesh security operations
-- `mesh_autoscale` - Automatic scaling configuration
-- `mesh_analytics` - Advanced analytics and insights
-
-[See full tool documentation](./docs/tools-reference.md)
-
-## 🔄 Event Streaming
-
-Real-time event streaming for mesh activities:
-
-```javascript
-import SynapticMeshMCP from './index.js';
-
-const mcp = new SynapticMeshMCP();
-await mcp.initialize();
-
-// Create event stream
-const streamId = mcp.events.streamNeuralMeshEvents({
-  'data.meshId': 'specific-mesh'
-});
-
-// Subscribe to events
-mcp.events.subscribe(streamId, (event) => {
-  console.log('Event:', event.type, event.data);
-});
-```
-
-## 🔐 Authentication
-
-### API Key Management
+Run the test suite:
 
 ```bash
-# Create API key
-node cli.js auth create-key --name "my-key" --permissions "neural_*"
-
-# List API keys
-node cli.js auth list-keys
-
-# Revoke API key
-node cli.js auth revoke-key --key "api-key-id"
+npm test src/mcp/tests/kimi-integration.test.ts
 ```
 
-### Usage with Authentication
+Run examples:
 
 ```bash
-# Set authorization header
-export MCP_API_KEY="your-api-key"
-node your-mcp-client.js
+npm run example:kimi
 ```
 
-## 🧪 Testing
+### Performance
 
-### Run Test Suite
+- **Token efficiency**: Smart context management reduces token usage
+- **Response speed**: Optimized for low latency responses
+- **Concurrent requests**: Support for parallel API calls
+- **Caching**: Response caching for repeated queries
+
+### Security
+
+- **API key protection**: Environment variable storage
+- **Input validation**: Comprehensive input sanitization
+- **Rate limiting**: Built-in protection against abuse
+- **Local option**: Privacy-focused local inference
+
+### Troubleshooting
+
+#### Common Issues
+
+1. **API Key Issues**:
+```bash
+# Check environment variables
+echo $MOONSHOT_API_KEY
+echo $OPENROUTER_API_KEY
+```
+
+2. **Local LLM Connection**:
+```bash
+# Check Ollama is running
+curl http://localhost:11434/api/tags
+```
+
+3. **Context Window Exceeded**:
+- Use `kimi_context_management` tool
+- Implement conversation summarization
+- Split large requests
+
+4. **Provider Unavailable**:
+- Test providers with `kimi_provider_test`
+- Configure fallback providers
+- Check network connectivity
+
+#### Debug Mode
+
+Enable debug logging:
 
 ```bash
-# Run all tests
-npm test
-
-# Run specific test file
-node --test tests/mcp-integration.test.js
-
-# Run with coverage
-npm run test:coverage
+export DEBUG=kimi:*
+npm run start:mcp
 ```
 
-### Performance Testing
-
-```bash
-# Run benchmark
-node cli.js perf benchmark --iterations 1000 --concurrent 50
-
-# Monitor performance
-node cli.js perf monitor --interval 1000 --duration 60
-```
-
-## 🌐 Transport Layers
-
-### stdio (Default)
-Standard input/output communication, ideal for command-line tools and MCP clients.
-
-### HTTP
-RESTful HTTP API with JSON-RPC 2.0 over HTTP POST.
-
-```bash
-curl -X POST http://localhost:3000/mcp \
-  -H "Content-Type: application/json" \
-  -d '{
-    "jsonrpc": "2.0",
-    "method": "tools/call",
-    "params": {
-      "name": "neural_mesh_init",
-      "arguments": {
-        "topology": "mesh",
-        "maxAgents": 5,
-        "strategy": "parallel"
-      }
-    },
-    "id": 1
-  }'
-```
-
-### WebSocket
-Real-time bidirectional communication with event streaming support.
-
-```javascript
-const ws = new WebSocket('ws://localhost:3000/ws');
-ws.send(JSON.stringify({
-  jsonrpc: "2.0",
-  method: "tools/call",
-  params: { name: "mesh_performance" },
-  id: 1
-}));
-```
-
-## 🦀 WASM Integration
-
-The MCP integration connects directly to Rust WASM modules:
-
-- **QuDAG** - DAG consensus and cryptographic operations
-- **ruv-swarm** - Neural agent coordination and SIMD optimization
-- **DAA** - Distributed algorithm execution
-- **CUDA-WASM** - GPU-accelerated computation (optional)
-
-WASM modules are automatically detected and loaded:
-
-```javascript
-// Check WASM capabilities
-const metrics = mcp.wasmBridge.getPerformanceMetrics();
-console.log('SIMD Support:', metrics.capabilities.simd);
-console.log('Threads Support:', metrics.capabilities.threads);
-```
-
-## 📊 Monitoring & Analytics
-
-### Real-time Monitoring
-
-```bash
-# Monitor server status
-node cli.js status --json
-
-# Monitor performance metrics
-node cli.js perf monitor
-
-# View active connections
-node cli.js connections list
-```
-
-### Analytics Dashboard
-
-Generate analytics reports:
-
-```bash
-# Performance analysis
-node cli.js analytics performance --timeframe 24h
-
-# Usage statistics
-node cli.js analytics usage --export csv
-
-# Health check
-node cli.js health --detailed
-```
-
-## 🔧 Development
-
-### Building from Source
-
-```bash
-# Install dependencies
-npm install
-
-# Run linting
-npm run lint
-
-# Format code
-npm run format
-
-# Build documentation
-npm run docs
-```
-
-### Creating Custom Tools
-
-```javascript
-// Add custom tool to neural-mesh-tools.js
-customTool: {
-  name: 'custom_tool',
-  description: 'Custom tool description',
-  inputSchema: z.object({
-    param1: z.string().describe('Parameter description'),
-    param2: z.number().optional()
-  }),
-  handler: this.customToolHandler.bind(this)
-}
-
-async customToolHandler({ param1, param2 }) {
-  // Implementation
-  return { success: true, result: 'Custom result' };
-}
-```
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-1. **WASM Module Loading Fails**
-   ```bash
-   # Check WASM module paths
-   node cli.js dev validate
-   
-   # Disable WASM for testing
-   export DISABLE_WASM=true
-   ```
-
-2. **Authentication Errors**
-   ```bash
-   # Verify API key format
-   node cli.js auth validate-key --key "your-key"
-   
-   # Check permissions
-   node cli.js auth check-permissions --key "your-key" --tool "neural_mesh_init"
-   ```
-
-3. **Transport Issues**
-   ```bash
-   # Test connectivity
-   node cli.js test --transport http --port 3000
-   
-   # Check port availability
-   netstat -an | grep 3000
-   ```
-
-### Debug Mode
-
-```bash
-# Enable debug logging
-DEBUG=synaptic-mesh:* node cli.js start
-
-# Verbose output
-node cli.js start --log-level debug
-```
-
-## 📚 Documentation
-
-- [API Reference](./docs/api-reference.md)
-- [Tool Reference](./docs/tools-reference.md)
-- [Transport Guide](./docs/transport-guide.md)
-- [Authentication Guide](./docs/auth-guide.md)
-- [WASM Integration](./docs/wasm-integration.md)
-- [Performance Tuning](./docs/performance-tuning.md)
-
-## 🤝 Contributing
+### Contributing
 
 1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Run tests (`npm test`)
-4. Commit changes (`git commit -m 'Add amazing feature'`)
-5. Push to branch (`git push origin feature/amazing-feature`)
-6. Open Pull Request
+2. Create a feature branch
+3. Add tests for new functionality
+4. Submit a pull request
 
-## 📄 License
+### License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- [Model Context Protocol](https://modelcontextprotocol.io/) specification
-- [Anthropic](https://anthropic.com/) for MCP development
-- Rust WASM community for optimization insights
-- Neural mesh research community
-
----
-
-🧠 **Synaptic Neural Mesh** - Where distributed intelligence meets seamless integration.
+MIT License - see LICENSE file for details.

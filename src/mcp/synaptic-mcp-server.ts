@@ -5,6 +5,7 @@
 
 import { ClaudeFlowMCPServer } from '../js/claude-flow/src/mcp/mcp-server.js';
 import { DAAMCPBridge } from './daa-mcp-bridge.js';
+import { KimiClient, KimiMultiProvider, createKimiClient } from '../js/synaptic-cli/lib/kimi-client.js';
 
 interface SynapticTool {
   name: string;
@@ -20,18 +21,21 @@ export class SynapticMCPServer extends ClaudeFlowMCPServer {
   private synapticTools: Record<string, SynapticTool>;
   private meshState: Map<string, any>;
   private daaBridge: DAAMCPBridge;
+  private kimiProvider: KimiMultiProvider;
   
   constructor() {
     super();
     this.synapticTools = this.initializeSynapticTools();
     this.meshState = new Map();
     this.daaBridge = new DAAMCPBridge();
+    this.kimiProvider = new KimiMultiProvider();
     
     // Extend base tools with synaptic-specific tools
     Object.assign(this.tools, this.synapticTools);
     
-    // Initialize DAA bridge
+    // Initialize DAA bridge and Kimi providers
     this.initializeDAA();
+    this.initializeKimiProviders();
   }
   
   private async initializeDAA() {
@@ -40,6 +44,38 @@ export class SynapticMCPServer extends ClaudeFlowMCPServer {
       console.error(`[${new Date().toISOString()}] INFO [synaptic-mcp] DAA bridge connected`);
     } catch (error) {
       console.error(`[${new Date().toISOString()}] WARNING [synaptic-mcp] DAA bridge unavailable:`, error.message);
+    }
+  }
+
+  private async initializeKimiProviders() {
+    try {
+      // Initialize Moonshot AI provider
+      this.kimiProvider.addProvider('moonshot', {
+        provider: 'moonshot',
+        apiKey: process.env.MOONSHOT_API_KEY,
+        model: 'moonshot-v1-128k',
+        contextWindow: 128000
+      });
+
+      // Initialize OpenRouter provider
+      this.kimiProvider.addProvider('openrouter', {
+        provider: 'openrouter',
+        apiKey: process.env.OPENROUTER_API_KEY,
+        model: 'anthropic/claude-3.5-sonnet',
+        contextWindow: 200000
+      });
+
+      // Initialize local provider (Ollama)
+      this.kimiProvider.addProvider('local', {
+        provider: 'local',
+        baseUrl: process.env.LOCAL_LLM_URL || 'http://localhost:11434/v1',
+        model: 'llama3.2:latest',
+        contextWindow: 32000
+      });
+
+      console.error(`[${new Date().toISOString()}] INFO [synaptic-mcp] Kimi providers initialized`);
+    } catch (error) {
+      console.error(`[${new Date().toISOString()}] WARNING [synaptic-mcp] Kimi providers initialization failed:`, error.message);
     }
   }
   
@@ -256,12 +292,127 @@ export class SynapticMCPServer extends ClaudeFlowMCPServer {
           properties: {
             assistant_type: { 
               type: 'string', 
-              enum: ['claude', 'gpt', 'llama', 'custom'] 
+              enum: ['claude', 'gpt', 'llama', 'kimi', 'custom'] 
             },
             interface_layer: { type: 'number' },
             bidirectional: { type: 'boolean', default: true }
           },
           required: ['assistant_type']
+        }
+      },
+
+      // Kimi-K2 Integration Tools
+      kimi_chat_completion: {
+        name: 'kimi_chat_completion',
+        description: 'Generate responses using Kimi-K2 models with tool calling support',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { 
+              type: 'string', 
+              enum: ['moonshot', 'openrouter', 'local'],
+              default: 'moonshot'
+            },
+            model: { type: 'string' },
+            messages: { 
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  role: { type: 'string', enum: ['system', 'user', 'assistant', 'tool'] },
+                  content: { type: 'string' },
+                  name: { type: 'string' },
+                  tool_calls: { type: 'array' },
+                  tool_call_id: { type: 'string' }
+                },
+                required: ['role', 'content']
+              }
+            },
+            tools: { type: 'array' },
+            tool_choice: { type: 'string' },
+            temperature: { type: 'number', default: 0.7 },
+            max_tokens: { type: 'number', default: 4000 },
+            stream: { type: 'boolean', default: false }
+          },
+          required: ['messages']
+        }
+      },
+
+      kimi_tool_execution: {
+        name: 'kimi_tool_execution',
+        description: 'Execute tool calls from Kimi responses',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            tool_calls: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  id: { type: 'string' },
+                  type: { type: 'string' },
+                  function: {
+                    type: 'object',
+                    properties: {
+                      name: { type: 'string' },
+                      arguments: { type: 'string' }
+                    }
+                  }
+                }
+              }
+            },
+            available_tools: { type: 'array' }
+          },
+          required: ['tool_calls']
+        }
+      },
+
+      kimi_context_management: {
+        name: 'kimi_context_management',
+        description: 'Manage conversation context within 128k token window',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            messages: { type: 'array' },
+            context_window: { type: 'number', default: 128000 },
+            strategy: { 
+              type: 'string', 
+              enum: ['truncate', 'summarize', 'sliding_window'],
+              default: 'sliding_window'
+            }
+          },
+          required: ['messages']
+        }
+      },
+
+      kimi_provider_test: {
+        name: 'kimi_provider_test',
+        description: 'Test connections to all Kimi-K2 providers',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            providers: {
+              type: 'array',
+              items: { type: 'string' },
+              default: ['moonshot', 'openrouter', 'local']
+            },
+            timeout: { type: 'number', default: 30000 }
+          }
+        }
+      },
+
+      kimi_model_list: {
+        name: 'kimi_model_list',
+        description: 'List available models for each provider',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            provider: { 
+              type: 'string', 
+              enum: ['moonshot', 'openrouter', 'local', 'all'],
+              default: 'all'
+            }
+          }
         }
       },
       
@@ -456,6 +607,22 @@ export class SynapticMCPServer extends ClaudeFlowMCPServer {
         
       case 'daa_lifecycle_manage':
         return this.manageLifecycle(args);
+
+      // Kimi-K2 Integration Tools
+      case 'kimi_chat_completion':
+        return this.kimiChatCompletion(args);
+
+      case 'kimi_tool_execution':
+        return this.kimiToolExecution(args);
+
+      case 'kimi_context_management':
+        return this.kimiContextManagement(args);
+
+      case 'kimi_provider_test':
+        return this.kimiProviderTest(args);
+
+      case 'kimi_model_list':
+        return this.kimiModelList(args);
         
       default:
         throw new Error(`Unknown synaptic tool: ${name}`);
@@ -1148,6 +1315,208 @@ export class SynapticMCPServer extends ClaudeFlowMCPServer {
       return {
         success: false,
         error: `Lifecycle management failed: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  // Kimi-K2 Integration Tool Implementations
+  private async kimiChatCompletion(args: any) {
+    try {
+      const provider = args.provider || 'moonshot';
+      const kimiClient = this.kimiProvider.getProvider(provider);
+      
+      if (!kimiClient) {
+        throw new Error(`Provider '${provider}' not available`);
+      }
+
+      const response = await kimiClient.chatCompletion({
+        model: args.model,
+        messages: args.messages,
+        tools: args.tools,
+        tool_choice: args.tool_choice,
+        temperature: args.temperature,
+        max_tokens: args.max_tokens,
+        stream: args.stream
+      });
+
+      return {
+        success: true,
+        provider,
+        model: response.model,
+        response: response.choices[0]?.message,
+        usage: response.usage,
+        tool_calls: response.choices[0]?.message?.tool_calls || [],
+        finish_reason: response.choices[0]?.finish_reason,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Kimi chat completion failed: ${error.message}`,
+        provider: args.provider || 'moonshot',
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async kimiToolExecution(args: any) {
+    try {
+      const provider = 'moonshot'; // Default provider for tool execution
+      const kimiClient = this.kimiProvider.getProvider(provider);
+      
+      if (!kimiClient) {
+        throw new Error(`Provider '${provider}' not available`);
+      }
+
+      // Map available tools (this would be extended with actual tool implementations)
+      const availableTools = new Map<string, Function>([
+        ['mesh_status', async (params: any) => this.getMeshStatus(params)],
+        ['neuron_spawn', async (params: any) => this.spawnNeuron(params)],
+        ['synapse_create', async (params: any) => this.createSynapse(params)],
+        ['mesh_train', async (params: any) => this.trainMesh(params)],
+        ['connectivity_analyze', async (params: any) => this.analyzeConnectivity(params)]
+      ]);
+
+      const results = [];
+      for (const toolCall of args.tool_calls) {
+        const result = await kimiClient.executeToolCall(toolCall, availableTools);
+        results.push(result);
+      }
+
+      return {
+        success: true,
+        executed_tools: results.length,
+        results,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Tool execution failed: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async kimiContextManagement(args: any) {
+    try {
+      const provider = 'moonshot';
+      const kimiClient = this.kimiProvider.getProvider(provider);
+      
+      if (!kimiClient) {
+        throw new Error(`Provider '${provider}' not available`);
+      }
+
+      const originalLength = args.messages.length;
+      const managedMessages = kimiClient.manageContext(args.messages);
+      const contextWindow = args.context_window || 128000;
+
+      return {
+        success: true,
+        strategy: args.strategy || 'sliding_window',
+        context_window: contextWindow,
+        original_messages: originalLength,
+        managed_messages: managedMessages.length,
+        tokens_saved: Math.max(0, originalLength - managedMessages.length) * 4, // Rough estimate
+        messages: managedMessages,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Context management failed: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async kimiProviderTest(args: any) {
+    try {
+      const providersToTest = args.providers || ['moonshot', 'openrouter', 'local'];
+      const results = {};
+
+      for (const providerName of providersToTest) {
+        const client = this.kimiProvider.getProvider(providerName);
+        if (client) {
+          try {
+            const testResult = await client.testConnection();
+            results[providerName] = testResult;
+          } catch (error) {
+            results[providerName] = {
+              success: false,
+              provider: providerName,
+              error: error.message
+            };
+          }
+        } else {
+          results[providerName] = {
+            success: false,
+            provider: providerName,
+            error: 'Provider not configured'
+          };
+        }
+      }
+
+      const successfulProviders = Object.values(results).filter((r: any) => r.success).length;
+
+      return {
+        success: true,
+        tested_providers: providersToTest.length,
+        successful_providers: successfulProviders,
+        results,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Provider test failed: ${error.message}`,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  private async kimiModelList(args: any) {
+    try {
+      const provider = args.provider || 'all';
+      const models = {};
+
+      if (provider === 'all') {
+        const providers = ['moonshot', 'openrouter', 'local'];
+        for (const providerName of providers) {
+          const client = this.kimiProvider.getProvider(providerName);
+          if (client) {
+            try {
+              const modelList = await client.getModels();
+              models[providerName] = modelList.data;
+            } catch (error) {
+              models[providerName] = { error: error.message };
+            }
+          } else {
+            models[providerName] = { error: 'Provider not configured' };
+          }
+        }
+      } else {
+        const client = this.kimiProvider.getProvider(provider);
+        if (client) {
+          const modelList = await client.getModels();
+          models[provider] = modelList.data;
+        } else {
+          throw new Error(`Provider '${provider}' not configured`);
+        }
+      }
+
+      return {
+        success: true,
+        provider,
+        models,
+        timestamp: new Date().toISOString()
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: `Model list failed: ${error.message}`,
+        provider: args.provider,
         timestamp: new Date().toISOString()
       };
     }

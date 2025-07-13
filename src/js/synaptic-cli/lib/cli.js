@@ -16,6 +16,7 @@ const peer_1 = require("./commands/peer");
 const status_1 = require("./commands/status");
 const stop_1 = require("./commands/stop");
 const config_1 = require("./commands/config");
+const kimi_1 = require("./commands/kimi");
 // ASCII Art Logo
 const logo = chalk_1.default.cyan(`
 ╔═══════════════════════════════════════════════════════════════╗
@@ -59,6 +60,7 @@ program.on('--help', () => {
     console.log('  $ synaptic-mesh start --port 8080          # Start mesh node on port 8080');
     console.log('  $ synaptic-mesh mesh join peer.address     # Join existing mesh network');
     console.log('  $ synaptic-mesh neural spawn --type mlp    # Spawn a neural agent');
+    console.log('  $ synaptic-mesh kimi chat "Hello AI!"      # Chat with Kimi-K2 AI model');
     console.log('  $ synaptic-mesh status                     # Check mesh status');
     console.log('');
     console.log('Documentation:');
@@ -80,6 +82,7 @@ program.addCommand((0, peer_1.peerCommand)());
 program.addCommand((0, status_1.statusCommand)());
 program.addCommand((0, stop_1.stopCommand)());
 program.addCommand((0, config_1.configCommand)());
+program.addCommand((0, kimi_1.kimiCommand)());
 // Error handling
 program.exitOverride((err) => {
     if (err.code === 'commander.version') {

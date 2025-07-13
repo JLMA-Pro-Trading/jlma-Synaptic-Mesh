@@ -1,15 +1,15 @@
 [package]
 name = "synaptic-mesh-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["rUv <https://github.com/ruvnet>"]
-description = "CLI library for Synaptic Neural Mesh - complete integration of all components"
+description = "CLI library for Synaptic Neural Mesh - complete integration with Synaptic Market"
 repository = "https://github.com/ruvnet/Synaptic-Mesh"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/ruvnet/Synaptic-Mesh"
 documentation = "https://docs.rs/synaptic-mesh-cli"
 readme = "README.md"
-keywords = ["cli", "neural", "mesh", "distributed", "ai"]
+keywords = ["cli", "neural", "mesh", "distributed", "marketplace"]
 categories = ["command-line-interface", "science"]
 
 [dependencies]
@@ -17,6 +17,7 @@ synaptic-qudag-core = "0.1"
 synaptic-neural-wasm = "0.1"
 synaptic-neural-mesh = "0.1"
 synaptic-daa-swarm = "0.1"
+claude_market = "0.1"
 clap = { version = "4.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }

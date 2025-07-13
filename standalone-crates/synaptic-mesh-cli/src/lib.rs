@@ -10,6 +10,7 @@ use synaptic_qudag_core::QuDAGNetwork;
 use synaptic_neural_wasm::{NeuralNetwork, Layer};
 use synaptic_neural_mesh::{NeuralMesh, Agent};
 use synaptic_daa_swarm::{Swarm, SwarmBehavior};
+use claude_market::{ClaudeMarket, MarketConfig};
 
 /// Synaptic Mesh CLI
 #[derive(Parser, Debug)]
@@ -41,6 +42,16 @@ pub enum Commands {
     Mesh {
         #[command(subcommand)]
         action: MeshAction,
+    },
+    /// Market operations
+    Market {
+        #[command(subcommand)]
+        action: MarketAction,
+    },
+    /// Wallet operations
+    Wallet {
+        #[command(subcommand)]
+        action: WalletAction,
     },
     /// Show status
     Status,
@@ -124,6 +135,60 @@ pub enum MeshAction {
     },
 }
 
+/// Market actions
+#[derive(Subcommand, Debug)]
+pub enum MarketAction {
+    /// Initialize market
+    Init {
+        #[arg(short, long)]
+        db_path: Option<String>,
+    },
+    /// Create capacity offer
+    Offer {
+        #[arg(short, long)]
+        slots: u64,
+        #[arg(short, long)]
+        price: u64,
+        #[arg(long)]
+        opt_in: bool,
+    },
+    /// Submit capacity bid
+    Bid {
+        #[arg(short, long)]
+        task: String,
+        #[arg(short, long)]
+        max_price: u64,
+    },
+    /// Show market status
+    Status {
+        #[arg(short, long)]
+        detailed: bool,
+    },
+    /// View terms and compliance
+    Terms,
+}
+
+/// Wallet actions
+#[derive(Subcommand, Debug)]
+pub enum WalletAction {
+    /// Show balance
+    Balance,
+    /// Transfer tokens
+    Transfer {
+        #[arg(short, long)]
+        to: String,
+        #[arg(short, long)]
+        amount: u64,
+        #[arg(short, long)]
+        memo: Option<String>,
+    },
+    /// Show transaction history
+    History {
+        #[arg(short, long, default_value = "10")]
+        limit: usize,
+    },
+}
+
 /// Mesh command for programmatic use
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum MeshCommand {
@@ -139,6 +204,14 @@ pub enum MeshCommand {
     MeshInfo,
     MeshAddAgent { name: String },
     MeshSubmitTask { name: String, compute: f64 },
+    MarketInit { db_path: Option<String> },
+    MarketOffer { slots: u64, price: u64, opt_in: bool },
+    MarketBid { task: String, max_price: u64 },
+    MarketStatus { detailed: bool },
+    MarketTerms,
+    WalletBalance,
+    WalletTransfer { to: String, amount: u64, memo: Option<String> },
+    WalletHistory { limit: usize },
     Status,
 }
 
@@ -245,6 +318,83 @@ pub async fn execute_command(command: MeshCommand) -> Result<CommandResult> {
             Ok(CommandResult::TaskSubmitted { id: id.to_string(), name })
         }
         
+        MeshCommand::MarketInit { db_path } => {
+            let config = MarketConfig {
+                db_path: db_path.clone(),
+                ..Default::default()
+            };
+            let _market = ClaudeMarket::new(config).await?;
+            Ok(CommandResult::MarketInitialized { 
+                db_path: db_path.unwrap_or("claude_market.db".to_string()) 
+            })
+        }
+        
+        MeshCommand::MarketOffer { slots, price, opt_in } => {
+            if !opt_in {
+                return Err(anyhow::anyhow!("Market participation requires explicit opt-in with --opt-in flag"));
+            }
+            // In real implementation, would create actual offer
+            Ok(CommandResult::MarketOfferCreated { slots, price })
+        }
+        
+        MeshCommand::MarketBid { task, max_price } => {
+            // In real implementation, would submit actual bid
+            Ok(CommandResult::MarketBidSubmitted { task, max_price })
+        }
+        
+        MeshCommand::MarketStatus { detailed: _ } => {
+            // In real implementation, would query actual market state
+            Ok(CommandResult::MarketStatus { 
+                active_offers: 3,
+                active_bids: 7,
+            })
+        }
+        
+        MeshCommand::MarketTerms => {
+            let terms = r#"
+SYNAPTIC MARKET TERMS OF SERVICE
+
+Synaptic Market facilitates peer compute federation, not API access resale. 
+
+KEY COMPLIANCE REQUIREMENTS:
+✅ NO shared API keys - Each participant uses their own Claude subscription
+✅ LOCAL execution - Tasks run locally on provider's Claude account
+✅ VOLUNTARY participation - Full user control with opt-in mechanisms  
+✅ TOKEN rewards - RUV tokens reward contribution, not access purchase
+
+LEGAL FRAMEWORK:
+• Each node maintains individual Claude subscriptions
+• Tasks are routed, not account access shared
+• Participation is voluntary and contribution-based
+• API keys are never shared or transmitted
+• This is peer compute federation, not resale
+
+By using Synaptic Market, you agree to maintain your own Claude subscription
+and comply with Anthropic's Terms of Service.
+"#;
+            Ok(CommandResult::MarketTerms { terms: terms.to_string() })
+        }
+        
+        MeshCommand::WalletBalance => {
+            // In real implementation, would query actual wallet
+            Ok(CommandResult::WalletBalance { balance: 1000 })
+        }
+        
+        MeshCommand::WalletTransfer { to, amount, memo: _ } => {
+            // In real implementation, would perform actual transfer
+            Ok(CommandResult::WalletTransferCompleted { to, amount })
+        }
+        
+        MeshCommand::WalletHistory { limit: _ } => {
+            // In real implementation, would query actual transaction history
+            Ok(CommandResult::WalletHistory { 
+                transactions: vec![
+                    "Transfer: 100 RUV to peer-123 (market_payment)".to_string(),
+                    "Received: 50 RUV from peer-456 (task_completion)".to_string(),
+                ]
+            })
+        }
+
         MeshCommand::Status => {
             Ok(CommandResult::Status {
                 mesh_active: true,
@@ -271,6 +421,14 @@ pub enum CommandResult {
     MeshInfo { agents: usize, tasks: usize },
     AgentAdded { id: String, name: String },
     TaskSubmitted { id: String, name: String },
+    MarketInitialized { db_path: String },
+    MarketOfferCreated { slots: u64, price: u64 },
+    MarketBidSubmitted { task: String, max_price: u64 },
+    MarketStatus { active_offers: usize, active_bids: usize },
+    MarketTerms { terms: String },
+    WalletBalance { balance: u64 },
+    WalletTransferCompleted { to: String, amount: u64 },
+    WalletHistory { transactions: Vec<String> },
     Status { mesh_active: bool, nodes: usize, agents: usize, swarms: usize },
 }
 
@@ -306,6 +464,18 @@ pub fn cli_to_command(cli: Cli) -> MeshCommand {
             MeshAction::Info => MeshCommand::MeshInfo,
             MeshAction::AddAgent { name } => MeshCommand::MeshAddAgent { name },
             MeshAction::SubmitTask { name, compute } => MeshCommand::MeshSubmitTask { name, compute },
+        },
+        Commands::Market { action } => match action {
+            MarketAction::Init { db_path } => MeshCommand::MarketInit { db_path },
+            MarketAction::Offer { slots, price, opt_in } => MeshCommand::MarketOffer { slots, price, opt_in },
+            MarketAction::Bid { task, max_price } => MeshCommand::MarketBid { task, max_price },
+            MarketAction::Status { detailed } => MeshCommand::MarketStatus { detailed },
+            MarketAction::Terms => MeshCommand::MarketTerms,
+        },
+        Commands::Wallet { action } => match action {
+            WalletAction::Balance => MeshCommand::WalletBalance,
+            WalletAction::Transfer { to, amount, memo } => MeshCommand::WalletTransfer { to, amount, memo },
+            WalletAction::History { limit } => MeshCommand::WalletHistory { limit },
         },
         Commands::Status => MeshCommand::Status,
     }
