@@ -273,16 +273,29 @@ impl Reputation {
                 ],
             )?;
 
-            // Give new user bonus
-            drop(db);
-            self.record_event(
-                peer_id,
-                ReputationEvent::NewUserBonus,
-                None,
-                None,
-            ).await?;
+            // Give new user bonus - avoid recursion by directly calculating score
+            let bonus_impact = ReputationEvent::NewUserBonus.score_impact();
+            new_score.score = (new_score.score as f64 + bonus_impact).max(0.0) as u64;
+            
+            // Record the bonus event in database
+            db.execute(
+                "INSERT INTO reputation_events (peer_id, event_type, score_impact, created_at) 
+                 VALUES (?1, ?2, ?3, ?4)",
+                [
+                    &peer_str as &dyn rusqlite::ToSql,
+                    &("NewUserBonus".to_string()) as &dyn rusqlite::ToSql,
+                    &(bonus_impact as f64) as &dyn rusqlite::ToSql,
+                    &chrono::Utc::now().to_rfc3339() as &dyn rusqlite::ToSql,
+                ],
+            )?;
 
-            self.get_reputation(peer_id).await
+            // Update the score in database
+            db.execute(
+                "UPDATE reputation_scores SET score = ?1 WHERE peer_id = ?2",
+                [&(new_score.score as i64), &peer_str],
+            )?;
+
+            Ok(new_score)
         }
     }
 
@@ -343,8 +356,30 @@ impl Reputation {
             params![peer_str, Utc::now().to_rfc3339()],
         )?;
 
-        drop(db);
-        self.get_reputation(peer_id).await
+        // Instead of recursively calling get_reputation, calculate it directly
+        let updated_score = db.query_row(
+            "SELECT score, total_trades, successful_trades, failed_trades, 
+                    avg_response_time, disputes, last_activity, created_at 
+             FROM reputation_scores WHERE peer_id = ?1",
+            [&peer_str],
+            |row| Ok(ReputationScore {
+                peer_id: peer_id.clone(),
+                score: row.get::<_, i64>(0)? as u64,
+                total_trades: row.get::<_, i64>(1)? as u64,
+                successful_trades: row.get::<_, i64>(2)? as u64,
+                failed_trades: row.get::<_, i64>(3)? as u64,
+                avg_response_time: row.get::<_, f64>(4)?,
+                disputes: row.get::<_, i64>(5)? as u64,
+                last_activity: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(6)?)
+                    .map_err(|e| rusqlite::Error::InvalidColumnType(6, "timestamp".to_string(), rusqlite::types::Type::Text))?
+                    .with_timezone(&chrono::Utc),
+                created_at: chrono::DateTime::parse_from_rfc3339(&row.get::<_, String>(7)?)
+                    .map_err(|e| rusqlite::Error::InvalidColumnType(7, "timestamp".to_string(), rusqlite::types::Type::Text))?
+                    .with_timezone(&chrono::Utc),
+            })
+        )?;
+        
+        Ok(updated_score)
     }
 
     /// Submit feedback for a trade

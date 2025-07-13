@@ -2,7 +2,7 @@
 
 use crate::error::{MarketError, Result};
 use chrono::{DateTime, Utc};
-use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
+use ed25519_dalek::{Signer, SigningKey};
 use libp2p::PeerId;
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
@@ -48,6 +48,15 @@ pub struct TokenTransfer {
 pub struct Wallet {
     db: Mutex<Connection>,
     signing_keys: Mutex<HashMap<PeerId, SigningKey>>,
+}
+
+impl std::fmt::Debug for Wallet {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Wallet")
+            .field("db", &"<database_connection>")
+            .field("signing_keys", &"<signing_keys>")
+            .finish()
+    }
 }
 
 impl Wallet {

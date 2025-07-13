@@ -7,7 +7,7 @@
 use crate::error::{MarketError, Result};
 use crate::wallet::Wallet;
 use chrono::{DateTime, Duration, Utc};
-use ed25519_dalek::{Signature, Signer, SigningKey, Verifier, VerifyingKey};
+use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use libp2p::PeerId;
 use rusqlite::{params, Connection, Transaction};
 use serde::{Deserialize, Serialize};

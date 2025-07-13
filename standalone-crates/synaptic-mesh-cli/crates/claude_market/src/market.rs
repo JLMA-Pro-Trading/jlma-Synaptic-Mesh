@@ -18,7 +18,7 @@ use tokio::sync::Mutex;
 use uuid::Uuid;
 use ed25519_dalek::{SigningKey, Signature, Signer, Verifier, VerifyingKey};
 use rand::rngs::OsRng;
-use sha2::{Sha256, Digest};
+use sha2::Sha256;
 
 /// Order type in the compute contribution market
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -86,6 +86,12 @@ pub struct SLASpec {
     /// Quality metrics requirements
     pub quality_metrics: HashMap<String, f64>,
 }
+
+/// Bid order (requesting compute)
+pub type Bid = Order;
+
+/// Offer order (providing compute)  
+pub type Offer = Order;
 
 /// Market order for compute contribution
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -656,14 +662,14 @@ impl Market {
                 Ok(Order {
                     id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
                     order_type: match row.get::<_, String>(1)?.as_str() {
-                        "Buy" => OrderType::Buy,
-                        "Sell" => OrderType::Sell,
-                        _ => OrderType::Buy,
+                        "Buy" => OrderType::RequestCompute,
+                        "Sell" => OrderType::OfferCompute,
+                        _ => OrderType::RequestCompute,
                     },
                     trader: row.get::<_, String>(2)?.parse().unwrap(),
-                    price: row.get::<_, i64>(3)? as u64,
-                    quantity: row.get::<_, i64>(4)? as u64,
-                    filled: row.get::<_, i64>(5)? as u64,
+                    price_per_unit: row.get::<_, i64>(3)? as u64,
+                    total_units: row.get::<_, i64>(4)? as u64,
+                    filled_units: row.get::<_, i64>(5)? as u64,
                     status: match row.get::<_, String>(6)?.as_str() {
                         "Active" => OrderStatus::Active,
                         "PartiallyFilled" => OrderStatus::PartiallyFilled,
@@ -706,11 +712,11 @@ impl Market {
             .query_map([], |row| {
                 Ok(Order {
                     id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
-                    order_type: OrderType::Buy,
+                    order_type: OrderType::RequestCompute,
                     trader: row.get::<_, String>(2)?.parse().unwrap(),
-                    price: row.get::<_, i64>(3)? as u64,
-                    quantity: row.get::<_, i64>(4)? as u64,
-                    filled: row.get::<_, i64>(5)? as u64,
+                    price_per_unit: row.get::<_, i64>(3)? as u64,
+                    total_units: row.get::<_, i64>(4)? as u64,
+                    filled_units: row.get::<_, i64>(5)? as u64,
                     status: match row.get::<_, String>(6)?.as_str() {
                         "Active" => OrderStatus::Active,
                         "PartiallyFilled" => OrderStatus::PartiallyFilled,
@@ -743,11 +749,11 @@ impl Market {
             .query_map([], |row| {
                 Ok(Order {
                     id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
-                    order_type: OrderType::Sell,
+                    order_type: OrderType::OfferCompute,
                     trader: row.get::<_, String>(2)?.parse().unwrap(),
-                    price: row.get::<_, i64>(3)? as u64,
-                    quantity: row.get::<_, i64>(4)? as u64,
-                    filled: row.get::<_, i64>(5)? as u64,
+                    price_per_unit: row.get::<_, i64>(3)? as u64,
+                    total_units: row.get::<_, i64>(4)? as u64,
+                    filled_units: row.get::<_, i64>(5)? as u64,
                     status: match row.get::<_, String>(6)?.as_str() {
                         "Active" => OrderStatus::Active,
                         "PartiallyFilled" => OrderStatus::PartiallyFilled,

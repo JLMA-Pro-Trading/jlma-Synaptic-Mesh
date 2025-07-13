@@ -1,6 +1,6 @@
 [package]
 name = "claude_market"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Synaptic Mesh Contributors"]
 description = "P2P marketplace for trading Claude API tokens with escrow and reputation"
