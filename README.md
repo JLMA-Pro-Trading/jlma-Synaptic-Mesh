@@ -13,6 +13,49 @@
 
 ---
 
+## ⚡ **Instant Alpha Testing**
+
+⚠️ **IMPORTANT**: Claude Code must be installed first:
+
+```bash
+# 1. Install Claude Code globally
+npm install -g @anthropic-ai/claude-code
+
+# 2. Activate Claude Code with permissions
+claude --dangerously-skip-permissions
+```
+
+🎯 **Start Your Neural Mesh Journey:**
+
+```bash
+# 1. Initialize Synaptic Neural Mesh (auto-configures quantum-resistant P2P!)
+npx --y synaptic-mesh@alpha init --force
+
+# 2. Explore all distributed cognition capabilities  
+npx --y synaptic-mesh@alpha --help
+
+# 3. Launch the neural mesh coordinator
+npx --y synaptic-mesh@alpha mesh start --port 8080
+
+# 4. Spawn your first neural agent
+npx synaptic-mesh@alpha neural spawn --type "distributed-learner" --task "evolve"
+
+# 5. Join the global neural fabric
+npx synaptic-mesh@alpha mesh join --bootstrap /ip4/144.126.223.47/tcp/8080/p2p/12D3KooW...
+```
+
+🧠 **With Claude Flow Integration:**
+
+```bash
+# Initialize enhanced coordination layer
+npx --y claude-flow@alpha init --force --synaptic-mesh
+
+# Launch coordinated neural swarm
+npx claude-flow@alpha hive-mind spawn "distributed neural mesh" --synaptic --agents 8
+```
+
+---
+
 ## 🌟 The Paradigm Shift: From Centralized AI to Distributed Cognition
 
 We're entering an era where intelligence no longer needs to be centralized or monolithic. With today's tools, we can build globally distributed neural systems where every node—whether a simulated particle, a physical device, or a person—is its own adaptive micro-network.
@@ -122,12 +165,22 @@ Run `npx synaptic-mesh init`. You're not just starting an app. **You're growing 
 
 ## 🚀 Quick Start
 
+### Prerequisites
+```bash
+# Install Claude Code first (required for MCP integration)
+npm install -g @anthropic-ai/claude-code
+claude --dangerously-skip-permissions
+```
+
 ### Installation
 ```bash
-# Install globally via NPX
+# Alpha release - instant neural mesh deployment
+npx --y synaptic-mesh@alpha init --force
+
+# Production release (when available)
 npx synaptic-mesh@latest init
 
-# Or install locally
+# Local installation for development
 npm install -g synaptic-mesh
 synaptic-mesh init
 ```
