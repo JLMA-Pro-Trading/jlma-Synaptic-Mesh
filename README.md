@@ -330,7 +330,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
 - ⏳ **P2P Networking** - QuDAG integration and consensus
 - ⏳ **Neural Agents** - WASM runtime and lifecycle management
 
-Track progress: [Implementation Epic](https://github.com/ruvnet/Synaptic-Neural-Mesh/issues)
+Track progress: [Implementation Epic](https://github.com/ruvnet/Synaptic-Mesh/issues)
 
 ## 🛡️ Security
 
