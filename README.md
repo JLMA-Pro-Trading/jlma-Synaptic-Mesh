@@ -29,29 +29,29 @@ claude --dangerously-skip-permissions
 
 ```bash
 # 1. Initialize Synaptic Neural Mesh (auto-configures quantum-resistant P2P!)
-npx --y synaptic-mesh@alpha init --force
+npx --y synaptic-mesh init --force
 
 # 2. Explore all distributed cognition capabilities  
-npx --y synaptic-mesh@alpha --help
+npx --y synaptic-mesh --help
 
 # 3. Launch the neural mesh coordinator
-npx --y synaptic-mesh@alpha mesh start --port 8080
+npx --y synaptic-mesh mesh start --port 8080
 
 # 4. Spawn your first neural agent
-npx synaptic-mesh@alpha neural spawn --type "distributed-learner" --task "evolve"
+npx synaptic-mesh neural spawn --type "distributed-learner" --task "evolve"
 
 # 5. Join the global neural fabric
-npx synaptic-mesh@alpha mesh join --bootstrap /ip4/144.126.223.47/tcp/8080/p2p/12D3KooW...
+npx synaptic-mesh mesh join --bootstrap /ip4/144.126.223.47/tcp/8080/p2p/12D3KooW...
 ```
 
 🧠 **With Claude Flow Integration:**
 
 ```bash
 # Initialize enhanced coordination layer
-npx --y claude-flow@alpha init --force --synaptic-mesh
+npx --y claude-flow init --force --synaptic-mesh
 
 # Launch coordinated neural swarm
-npx claude-flow@alpha hive-mind spawn "distributed neural mesh" --synaptic --agents 8
+npx claude-flow hive-mind spawn "distributed neural mesh" --synaptic --agents 8
 ```
 
 ---
@@ -175,10 +175,10 @@ claude --dangerously-skip-permissions
 ### Installation
 ```bash
 # Alpha release - instant neural mesh deployment
-npx --y synaptic-mesh@alpha init --force
+npx --y synaptic-mesh init --force
 
 # Production release (when available)
-npx synaptic-mesh@latest init
+npx synaptic-mesh init
 
 # Local installation for development
 npm install -g synaptic-mesh
