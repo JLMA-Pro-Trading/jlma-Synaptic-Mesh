@@ -9,18 +9,5 @@
  * - Performance optimization and error handling
  */
 import { Command } from 'commander';
-export interface KimiConfig {
-    apiKey?: string;
-    modelVersion?: string;
-    endpoint?: string;
-    maxTokens?: number;
-    temperature?: number;
-    features?: {
-        multiModal?: boolean;
-        codeGeneration?: boolean;
-        documentAnalysis?: boolean;
-        imageProcessing?: boolean;
-    };
-}
 export declare function kimiCommand(): Command;
 //# sourceMappingURL=kimi.d.ts.map
