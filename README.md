@@ -11,7 +11,7 @@
 
 ## 🚀 **The Future of Intelligence is Distributed**
 
-Imagine a world where artificial intelligence isn't confined to massive data centers or controlled by a few tech giants. **Synaptic Neural Mesh** makes this vision reality, a revolutionary peer-to-peer neural network that transforms any device into an intelligent node in a globally distributed brain.
+Imagine a world where artificial intelligence isn't confined to massive data centers or controlled by a few tech giants. **Synaptic Neural Mesh** makes this vision reality, a revolutionary peer-to-peer neural network that transforms any device into an intelligent node in a globally distributed brain. Now featuring the **Synaptic Market** - the world's first compliant decentralized marketplace for Agentic Ai capacity sharing.
 
 ### 🌟 **What Makes This Revolutionary?**
 
@@ -40,6 +40,7 @@ Instead of one massive billion+ parameter model, Synaptic Neural Mesh deploys **
 - 🔓 **Truly decentralized** - No single point of control or failure
 - 💡 **Resource efficient** - Run on phones, IoT devices, edge computers
 - 🎭 **Specialized expertise** - Each micro-network masters its domain
+- 🏪 **Synaptic Market** - Trade Claude-Max capacity using ruv tokens (fully compliant)
 
 ### 🎯 **One Command. Infinite Possibilities.**
 
@@ -381,6 +382,9 @@ Agents evolve through performance-based selection, mutation, and diversity prese
 
 ### 5. **Cross-Agent Learning**
 Novel protocols enable agents to share knowledge without centralizing data.
+
+### 6. **Synaptic Market Integration**
+Decentralized marketplace for Claude-Max capacity sharing with ruv token economics and full Anthropic ToS compliance.
 
 ## 📊 Performance Benchmarks
 
