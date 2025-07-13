@@ -306,6 +306,65 @@ synaptic-mesh start --mcp --stdio
 # Now accessible via Claude Code, Cursor, etc.
 ```
 
+---
+
+## 🏪 **Synaptic Market: Decentralized Claude-Max Marketplace**
+
+**Revolutionary peer-to-peer AI capacity sharing using ruv tokens**
+
+### ✨ **Market Features**
+
+- 🔒 **Compliance-First Design**: Each node uses their own Claude credentials - no account sharing
+- 🏦 **Escrowed Transactions**: Secure ruv token payments with automatic settlement
+- 🐋 **Docker Isolation**: Claude tasks run in secure, read-only containers
+- 🎯 **First-Accept Auctions**: Fast, competitive pricing for AI capacity
+- 🛡️ **Privacy-Preserving**: Encrypted payloads ensure task confidentiality
+- 📊 **Reputation System**: SLA tracking builds provider trust scores
+
+### 🚀 **Market Commands**
+
+```bash
+# Start offering Claude capacity (requires own Claude subscription)
+npx synaptic-mesh market offer --slots 5 --price 10 --opt-in
+
+# Bid for Claude capacity from the network
+npx synaptic-mesh market bid --task "Analyze this data" --max-price 15
+
+# Check your ruv token balance
+npx synaptic-mesh wallet balance
+
+# View market activity
+npx synaptic-mesh market status --detailed
+```
+
+### ⚖️ **Legal Compliance Notice**
+
+> **Synaptic Market does not proxy or resell access to Claude Max.** All compute is run locally by consenting nodes with individual Claude subscriptions. Participation is voluntary. API keys are never shared or transmitted. This is a peer compute federation, not a resale service.
+
+### 🔧 **Market Setup**
+
+```bash
+# 1. Ensure you have your own Claude subscription
+claude login
+
+# 2. Initialize market participant node
+npx synaptic-mesh init --market-enabled
+
+# 3. Set usage limits and opt-in preferences
+npx synaptic-mesh market config --daily-limit 10 --auto-accept false
+
+# 4. View usage policy and terms
+npx synaptic-mesh market --terms
+```
+
+---
+
+**Ready to join the neural mesh?** 
+
+```bash
+npx synaptic-mesh init
+```
+
 ## 🔬 Cutting-Edge Features
 
 ### 1. **Quantum-Resistant Mesh Networking**
@@ -403,12 +462,5 @@ Built on the shoulders of giants:
 - **[libp2p](https://libp2p.io/)** - P2P networking primitives
 - **[WebAssembly](https://webassembly.org/)** - Portable execution
 
----
-
-**Ready to join the neural mesh?** 
-
-```bash
-npx synaptic-mesh init
-```
 
 *You're not just starting an app. You're growing a thought.* 🧠✨

@@ -347,11 +347,117 @@ npx synaptic-mesh start --discovery mdns
 - [FAQ](../troubleshooting/faq.md)
 - [GitHub Issues](https://github.com/ruvnet/Synaptic-Neural-Mesh/issues)
 
+## Step 9: Explore Synaptic Market (Optional)
+
+If you want to participate in the decentralized Claude-Max marketplace:
+
+⚠️ **IMPORTANT**: You must have your own Claude subscription and credentials
+
+### Market Setup
+
+```bash
+# 1. Ensure Claude Code is installed and authenticated
+claude login
+
+# 2. Enable market participation
+npx synaptic-mesh market init --opt-in
+
+# 3. Set your participation limits
+npx synaptic-mesh market config --daily-limit 5 --auto-accept false
+
+# 4. View terms and compliance information
+npx synaptic-mesh market --terms
+```
+
+### Provider Mode: Offer Your Claude Capacity
+
+```bash
+# Advertise available Claude capacity
+npx synaptic-mesh market offer --slots 3 --price 5 --min-reputation 0.8
+
+# Monitor your offerings
+npx synaptic-mesh market status --provider
+
+# View earnings and statistics
+npx synaptic-mesh wallet balance --detailed
+```
+
+### Client Mode: Use Distributed Claude Capacity
+
+```bash
+# Find available providers
+npx synaptic-mesh market browse --max-price 10
+
+# Submit a task bid
+npx synaptic-mesh market bid --task "Analyze this code" --max-price 8
+
+# Check bid status
+npx synaptic-mesh market bids --active
+```
+
+### Market Commands Reference
+
+```bash
+# Wallet operations
+npx synaptic-mesh wallet balance              # Check ruv token balance
+npx synaptic-mesh wallet deposit <amount>     # Add tokens (via faucet/exchange)
+npx synaptic-mesh wallet history             # Transaction history
+
+# Market operations  
+npx synaptic-mesh market status              # Overall market status
+npx synaptic-mesh market reputation         # Your reputation score
+npx synaptic-mesh market disputes           # Any active disputes
+
+# Advanced market features
+npx synaptic-mesh market escrow list         # View escrowed amounts
+npx synaptic-mesh market settle <job-id>     # Manually settle completed job
+```
+
+### 🛡️ Security & Compliance
+
+The Synaptic Market operates under strict compliance rules:
+
+- **✅ No account sharing**: Each participant uses their own Claude credentials
+- **✅ Local execution**: Claude runs only on your local machine
+- **✅ Voluntary participation**: You approve each task individually
+- **✅ Full transparency**: Complete audit trail of your Claude usage
+- **✅ Privacy preserved**: Task content is encrypted end-to-end
+
+### Market Troubleshooting
+
+**"Market not available":**
+```bash
+# Check if market crate is properly installed
+npx synaptic-mesh market --version
+
+# Verify Claude authentication
+claude auth status
+```
+
+**"Insufficient tokens":**
+```bash
+# Get tokens from faucet (testnet)
+npx synaptic-mesh wallet faucet
+
+# Check for pending earnings
+npx synaptic-mesh market earnings --pending
+```
+
+**"Job execution failed":**
+```bash
+# Check Docker status
+docker version
+
+# Verify Claude container access
+npx synaptic-mesh market test-execution
+```
+
 ## What's Next?
 
 - **Join the Community**: [Discord](https://discord.gg/synaptic-mesh)
 - **Contribute**: [Contributing Guide](../../CONTRIBUTING.md)
 - **Stay Updated**: [GitHub Releases](https://github.com/ruvnet/Synaptic-Neural-Mesh/releases)
+- **Market Guide**: [Advanced Market Usage](../examples/advanced/market-strategies.md)
 
 ---
 
