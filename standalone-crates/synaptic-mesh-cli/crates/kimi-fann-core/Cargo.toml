@@ -1,6 +1,6 @@
 [package]
 name = "kimi-fann-core"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 authors = ["Synaptic Neural Mesh Team"]
 description = "Micro-expert neural architecture for Kimi-K2 WASM conversion using ruv-FANN"
@@ -10,16 +10,16 @@ keywords = ["neural-networks", "wasm", "ai", "machine-learning", "kimi"]
 categories = ["algorithms", "science", "wasm"]
 
 [lib]
-crate-type = ["cdylib", "rlib"]
+crate-type = ["cdylib"]
 
 [dependencies]
-# Core neural network engine - using ruv-FANN for memory-safe neural networks
-ruv-fann = "0.1.6"
+# Core neural network engine - using actual ruv-FANN crate
+ruv-fann = { version = "0.1.6", features = ["wasm"], default-features = false }
 
 # WebAssembly bindings
 wasm-bindgen = "0.2"
 js-sys = "0.3"
-web-sys = "0.3"
+web-sys = { version = "0.3", features = ["Worker", "MessageEvent", "DedicatedWorkerGlobalScope", "console", "Window"] }
 
 # Serialization and data handling
 serde = { version = "1.0", features = ["derive"] }
@@ -40,21 +40,36 @@ anyhow = "1.0"
 
 # Mathematical operations
 num-traits = "0.2"
-ndarray = "0.15"
 
 # Compression for memory optimization
 lz4 = "1.24"
 flate2 = "1.0"
 
 # Async processing and timing
-gloo-timers = "0.3"
+gloo-timers = { version = "0.3", features = ["futures"] }
 futures-channel = "0.3"
 
 # Logging (WASM compatible)
-log = "0.4"
+log = { version = "0.4", features = ["std"] }
 console_log = "1.0"
 
-# Feature flags for different architectures
+# Random number generation for WASM and general use
+fastrand = "2.0"
+
+[dependencies.getrandom]
+version = "0.2"
+features = ["js"]
+default-features = false
+
+[dev-dependencies]
+env_logger = "0.11"
+criterion = { version = "0.5", features = ["html_reports"] }
+wasm-bindgen-test = "0.3"
+tokio = { version = "1.0", features = ["full"] }
+async-std = "1.12"
+proptest = "1.4"
+tempfile = "3.8"
+
 [features]
 default = ["reasoning", "coding", "language", "mathematics", "tool-use", "context"]
 
@@ -73,14 +88,19 @@ gpu = []
 # Development features
 debug = ["log/max_level_debug"]
 
-[dependencies.getrandom]
-version = "0.2"
-features = ["js"]
-default-features = false
+[profile.release]
+opt-level = "z"          # Optimize for size
+lto = true               # Enable LTO for cdylib
+panic = "abort"         # No unwinding
+codegen-units = 1       # Better optimization
+strip = true            # Strip symbols
+debug = false           # No debug info
+overflow-checks = false # No overflow checks
+incremental = false     # Better optimization
 
 [package.metadata.wasm-pack.profile.release]
-wasm-opt = ["-Oz", "--enable-mutable-globals"]
+wasm-opt = false
 
-[package.metadata.docs.rs]
-features = ["default"]
-rustdoc-args = ["--cfg", "docsrs"]
+[[example]]
+name = "micro_expert_demo"
+path = "examples/micro_expert_demo.rs"
