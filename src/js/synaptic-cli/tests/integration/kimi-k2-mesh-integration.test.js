@@ -3,7 +3,7 @@
  * Testing integration between Kimi-K2 and Synaptic Neural Mesh components
  */
 
-const { describe, test, expect, beforeEach, afterEach, jest } = require('@jest/globals');
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 const { SynapticMesh } = require('../../lib/synaptic-mesh');
 const { KimiK2Agent } = require('../../lib/kimi-k2-agent');
 const { DAGNode } = require('../../lib/dag-node');

@@ -3,7 +3,7 @@
  * Testing Model Context Protocol integration with Kimi-K2
  */
 
-const { describe, test, expect, beforeEach, afterEach, jest } = require('@jest/globals');
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 const { MCPClient } = require('../../lib/mcp-client');
 const { KimiK2MCPBridge } = require('../../lib/kimi-k2-mcp-bridge');
 const fs = require('fs-extra');

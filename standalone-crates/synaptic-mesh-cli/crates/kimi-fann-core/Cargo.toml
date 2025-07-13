@@ -1,0 +1,86 @@
+[package]
+name = "kimi-fann-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["Synaptic Neural Mesh Team"]
+description = "Micro-expert neural architecture for Kimi-K2 WASM conversion using ruv-FANN"
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/ruvnet/Synaptic-Neural-Mesh"
+keywords = ["neural-networks", "wasm", "ai", "machine-learning", "kimi"]
+categories = ["algorithms", "science", "wasm"]
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+# Core neural network engine - using ruv-FANN for memory-safe neural networks
+ruv-fann = "0.1.6"
+
+# WebAssembly bindings
+wasm-bindgen = "0.2"
+js-sys = "0.3"
+web-sys = "0.3"
+
+# Serialization and data handling
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde-wasm-bindgen = "0.4"
+
+# Memory management and collections
+lru = "0.12"
+hashbrown = "0.14"
+
+# Async support for WASM
+futures = "0.3"
+wasm-bindgen-futures = "0.4"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# Mathematical operations
+num-traits = "0.2"
+ndarray = "0.15"
+
+# Compression for memory optimization
+lz4 = "1.24"
+flate2 = "1.0"
+
+# Async processing and timing
+gloo-timers = "0.3"
+futures-channel = "0.3"
+
+# Logging (WASM compatible)
+log = "0.4"
+console_log = "1.0"
+
+# Feature flags for different architectures
+[features]
+default = ["reasoning", "coding", "language", "mathematics", "tool-use", "context"]
+
+# Expert domain features
+reasoning = []
+coding = []
+language = []
+mathematics = []
+tool-use = []
+context = []
+
+# Performance features
+simd = []
+gpu = []
+
+# Development features
+debug = ["log/max_level_debug"]
+
+[dependencies.getrandom]
+version = "0.2"
+features = ["js"]
+default-features = false
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ["-Oz", "--enable-mutable-globals"]
+
+[package.metadata.docs.rs]
+features = ["default"]
+rustdoc-args = ["--cfg", "docsrs"]

@@ -40,6 +40,7 @@ Instead of one massive billion+ parameter model, Synaptic Neural Mesh deploys **
 - 🔓 **Truly decentralized** - No single point of control or failure
 - 💡 **Resource efficient** - Run on phones, IoT devices, edge computers
 - 🎭 **Specialized expertise** - Each micro-network masters its domain
+- 🧠 **Kimi-K2 Integration** - 128k context AI with advanced reasoning and code generation
 - 🏪 **Synaptic Market** - Trade Claude-Max capacity using ruv tokens (fully compliant)
 
 ### 🎯 **One Command. Infinite Possibilities.**
@@ -79,7 +80,11 @@ npx --y synaptic-mesh mesh start --port 8080
 # 4. Spawn your first neural agent
 npx synaptic-mesh neural spawn --type "distributed-learner" --task "evolve"
 
-# 5. Join the global neural fabric
+# 5. Connect to Kimi-K2 AI for enhanced reasoning
+npx synaptic-mesh kimi init --provider moonshot
+npx synaptic-mesh kimi chat "Analyze my React codebase"
+
+# 6. Join the global neural fabric
 npx synaptic-mesh mesh join --bootstrap /ip4/144.126.223.47/tcp/8080/p2p/12D3KooW...
 ```
 
@@ -162,9 +167,12 @@ Run `npx synaptic-mesh init`. You're not just starting an app. **You're growing 
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | **🌐 QuDAG** | Rust + WASM | Quantum-resistant DAG networking & consensus |
-| **🧠 ruv-FANN** | Rust + WASM + SIMD | Lightweight neural networks (< 100ms inference) |
+| **🧠 ruv-FANN** | Rust + WASM + SIMD | Custom neural networks (< 100ms inference) |
 | **🐝 DAA Swarm** | Rust + TypeScript | Distributed autonomous agent orchestration |
+| **🤖 MCP Server** | TypeScript | Claude Code integration with 30+ neural mesh tools |
+| **🧠 Kimi-K2 Client** | TypeScript | Multi-provider AI integration (Moonshot, OpenRouter, Local) |
 | **🔒 Cryptography** | ML-DSA, ML-KEM | Post-quantum secure communication |
+| **🏪 Synaptic Market** | Rust + TypeScript | Compliant Claude capacity marketplace |
 
 ### System Features
 
@@ -182,34 +190,36 @@ Run `npx synaptic-mesh init`. You're not just starting an app. **You're growing 
 - **Zero-trust architecture** with verified state propagation
 
 #### 🧬 **Intelligence Features**
-- **Ephemeral micro-networks**: 1K-1M parameter specialists spawned on-demand
+- **Custom neural networks**: Build micro-experts (1K-100K params) with ruv-FANN in WASM
+- **Claude Code integration**: Native MCP server with mesh tools for AI assistants
+- **Kimi-K2 AI**: 128k context window, multi-provider support (Moonshot/OpenRouter/Local)
+- **DAA swarm intelligence**: Self-organizing agents with consensus mechanisms
+- **Synaptic Market**: Compliant Claude-Max capacity trading with ruv tokens
 - **Task-adaptive agents**: Networks evolve, combine, and specialize for specific skills
-- **Lifecycle management**: Agents born → learn → contribute → evolve → retire
-- **Cross-agent learning**: Tiny networks share knowledge without centralizing data
-- **Evolutionary selection**: Performance-based survival and mutation of network types
 - **Multi-architecture support**: MLP, LSTM, CNN, attention mechanisms
-- **Swarm coordination**: Thousands of micro-networks collaborate on complex tasks
-- **Dynamic specialization**: Networks adapt their parameters based on task success
+- **Cross-agent learning**: Tiny networks share knowledge without centralizing data
 
 ## 💡 Benefits
 
 ### For Developers
 - **One-command deployment**: `npx synaptic-mesh init`
-- **Language agnostic**: WASM enables any language
-- **Auto-scaling**: Nodes join/leave dynamically
-- **Zero infrastructure**: Pure P2P, no servers needed
+- **Claude Code integration**: Native MCP server for AI assistants
+- **Custom neural networks**: Build micro-experts with ruv-FANN + WASM
+- **Multi-language**: TypeScript CLI, Rust core, WASM runtime
+- **Kimi-K2 AI**: 128k context for large codebase analysis
 
 ### For Organizations  
+- **Synaptic Market**: Monetize Claude-Max capacity (compliant)
+- **Quantum-resistant**: Future-proof post-quantum cryptography
+- **Fault tolerance**: Network survives node failures with DAA swarms
+- **Privacy-first**: Distributed data, encrypted P2P communication
 - **Cost reduction**: No centralized infrastructure costs
-- **Fault tolerance**: Network survives node failures
-- **Privacy-first**: Data stays distributed
-- **Future-proof**: Quantum-resistant from day one
 
-### For Researchers
-- **Distributed learning**: Novel research in collective AI
-- **Emergent behavior**: Study swarm intelligence patterns
-- **Edge computing**: Run AI where data is generated
-- **Evolutionary AI**: Adaptive systems that improve over time
+### For AI Researchers
+- **Custom neural architectures**: Experiment with micro-experts in WASM
+- **Distributed learning**: Study collective intelligence patterns
+- **Edge AI deployment**: Neural networks on any device
+- **Swarm coordination**: Research emergent DAA behaviors
 
 ## 🚀 Quick Start
 
@@ -240,6 +250,11 @@ synaptic-mesh init
 
 # Start the mesh with P2P networking
 synaptic-mesh start --port 8080
+
+# Connect to Kimi-K2 AI (128k context, advanced reasoning)
+synaptic-mesh kimi init --provider moonshot --api-key YOUR_KEY
+synaptic-mesh kimi chat "Help me optimize this React component"
+synaptic-mesh kimi generate --prompt "Create REST API" --lang typescript
 
 # Join an existing mesh network
 synaptic-mesh mesh join /ip4/192.168.1.100/tcp/8080/p2p/12D3KooW...

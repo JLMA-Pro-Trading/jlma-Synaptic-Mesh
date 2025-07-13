@@ -3,7 +3,7 @@
  * Comprehensive testing for Kimi-K2 integration within Synaptic Neural Mesh CLI
  */
 
-const { describe, test, expect, beforeEach, afterEach, jest } = require('@jest/globals');
+const { describe, test, expect, beforeEach, afterEach } = require('@jest/globals');
 const { execSync, spawn } = require('child_process');
 const fs = require('fs-extra');
 const path = require('path');
