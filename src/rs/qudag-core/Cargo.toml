@@ -1,6 +1,6 @@
 [package]
 name = "qudag-core"
-version = "1.0.0"
+version = "0.1.0"
 edition = "2021"
 authors = ["rUv <https://github.com/ruvnet>"]
 description = "QuDAG core networking and consensus for quantum-resistant DAG-based mesh networks"
@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 homepage = "https://github.com/ruvnet/Synaptic-Neural-Mesh"
 documentation = "https://docs.rs/qudag-core"
 readme = "../../README.md"
-keywords = ["qudag", "dag", "quantum-resistant", "p2p", "consensus"]
+keywords = ["dag", "p2p", "consensus", "mesh", "network"]
 categories = ["cryptography", "network-programming", "algorithms"]
 exclude = ["tests/*", "benches/*", "examples/*"]
 
@@ -19,15 +19,17 @@ tokio = { version = "1.0", features = ["full"] }
 futures = "0.3"
 async-trait = "0.1"
 
-# Cryptography - Post-quantum
-ml-dsa = "0.5"
-ml-kem = "0.2"
+# Cryptography - Standard
+ed25519-dalek = "2.1"
+x25519-dalek = "2.0"
 blake3 = "1.5"
 rand = "0.8"
 rand_core = "0.6"
 subtle = "2.5"
 zeroize = { version = "1.7", features = ["zeroize_derive"] }
 hex = "0.4"
+sha2 = "0.10"
+aes-gcm = "0.10"
 
 # Networking and P2P
 libp2p = { version = "0.53", features = [
