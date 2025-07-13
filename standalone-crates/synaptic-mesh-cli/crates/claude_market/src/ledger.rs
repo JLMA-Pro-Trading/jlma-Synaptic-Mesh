@@ -255,40 +255,18 @@ impl Ledger {
         let db = self.db.lock().await;
         let peer_str = peer_id.to_string();
 
-        let query = if let Some(tx_type) = tx_type {
-            format!(
-                r#"
+        if let Some(tx_type) = tx_type {
+            let tx_type_str = format!("{:?}", tx_type);
+            let query = r#"
                 SELECT id, tx_type, from_peer, to_peer, amount,
                        reference_id, metadata, hash, prev_hash, created_at
                 FROM transactions
                 WHERE (from_peer = ?1 OR to_peer = ?1) AND tx_type = ?2
                 ORDER BY created_at DESC
                 LIMIT ?3
-                "#
-            )
-        } else {
-            format!(
-                r#"
-                SELECT id, tx_type, from_peer, to_peer, amount,
-                       reference_id, metadata, hash, prev_hash, created_at
-                FROM transactions
-                WHERE from_peer = ?1 OR to_peer = ?1
-                ORDER BY created_at DESC
-                LIMIT ?2
-                "#
-            )
-        };
-
-        let mut stmt = db.prepare(&query)?;
-        
-        let params: Vec<&dyn rusqlite::ToSql> = if let Some(tx_type) = tx_type {
-            vec![&peer_str, &format!("{:?}", tx_type), &limit]
-        } else {
-            vec![&peer_str, &limit]
-        };
-
-        let transactions = stmt
-            .query_map(params.as_slice(), |row| {
+                "#;
+            let mut stmt = db.prepare(query)?;
+            let transactions = stmt.query_map([&peer_str, &tx_type_str, &(limit as i64).to_string()], |row| {
                 Ok(TokenTx {
                     id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
                     tx_type: match row.get::<_, String>(1)?.as_str() {
@@ -315,10 +293,48 @@ impl Ledger {
                         .unwrap()
                         .with_timezone(&Utc),
                 })
-            })?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-
-        Ok(transactions)
+            })?.collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(transactions)
+        } else {
+            let query = r#"
+                SELECT id, tx_type, from_peer, to_peer, amount,
+                       reference_id, metadata, hash, prev_hash, created_at
+                FROM transactions
+                WHERE from_peer = ?1 OR to_peer = ?1
+                ORDER BY created_at DESC
+                LIMIT ?2
+                "#;
+            let mut stmt = db.prepare(query)?;
+            let transactions = stmt.query_map([&peer_str, &(limit as i64).to_string()], |row| {
+                Ok(TokenTx {
+                    id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
+                    tx_type: match row.get::<_, String>(1)?.as_str() {
+                        "Transfer" => TxType::Transfer,
+                        "OrderPlaced" => TxType::OrderPlaced,
+                        "OrderCancelled" => TxType::OrderCancelled,
+                        "TradeExecuted" => TxType::TradeExecuted,
+                        "EscrowCreated" => TxType::EscrowCreated,
+                        "EscrowReleased" => TxType::EscrowReleased,
+                        "EscrowRefunded" => TxType::EscrowRefunded,
+                        "ReputationUpdate" => TxType::ReputationUpdate,
+                        "FeeCollected" => TxType::FeeCollected,
+                        _ => TxType::Transfer,
+                    },
+                    from: row.get::<_, String>(2)?.parse().unwrap(),
+                    to: row.get::<_, Option<String>>(3)?.map(|s| s.parse().unwrap()),
+                    amount: row.get::<_, i64>(4)? as u64,
+                    reference_id: row.get::<_, Option<String>>(5)?
+                        .map(|s| Uuid::parse_str(&s).unwrap()),
+                    metadata: serde_json::from_str(&row.get::<_, String>(6)?).unwrap(),
+                    hash: row.get(7)?,
+                    prev_hash: row.get(8)?,
+                    created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                })
+            })?.collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(transactions)
+        }
     }
 
     /// Verify ledger integrity by checking hash chain

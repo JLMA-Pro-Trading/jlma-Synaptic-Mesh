@@ -9,7 +9,7 @@ use crate::wallet::Wallet;
 use chrono::{DateTime, Duration, Utc};
 use ed25519_dalek::{Signer, SigningKey, VerifyingKey};
 use libp2p::PeerId;
-use rusqlite::{params, Connection, Transaction};
+use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -779,7 +779,7 @@ impl Escrow {
                 "#,
                 params![escrow_id.to_string()],
                 |row| {
-                    let mut escrow = EscrowAgreement {
+                    let escrow = EscrowAgreement {
                         id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
                         job_id: Uuid::parse_str(&row.get::<_, String>(1)?).unwrap(),
                         requester: row.get::<_, String>(2)?.parse().unwrap(),
@@ -1061,7 +1061,7 @@ impl Escrow {
                 
                 Ok(count >= 2)
             }
-            MultiSigType::Arbitrators { required, total } => {
+            MultiSigType::Arbitrators { required, total: _ } => {
                 // Need M-of-N arbitrator signatures
                 let db = self.db.lock().await;
                 let arbitrator_sigs: i64 = db.query_row(

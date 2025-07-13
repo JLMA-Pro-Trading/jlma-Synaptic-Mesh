@@ -8,17 +8,16 @@
 
 use crate::error::{MarketError, Result};
 use crate::reputation::Reputation;
+use crate::pricing::{PricingStrategy, MarketConditions, DemandLevel, SupplyLevel};
 use chrono::{DateTime, Duration, Utc};
 use libp2p::PeerId;
-use rusqlite::{params, Connection, Transaction};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
-use std::cmp::Ordering;
 use std::collections::HashMap;
+use std::sync::Arc;
 use tokio::sync::Mutex;
 use uuid::Uuid;
 use ed25519_dalek::{SigningKey, Signature, Signer, Verifier, VerifyingKey};
-use rand::rngs::OsRng;
-use sha2::Sha256;
 
 /// Order type in the compute contribution market
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
@@ -324,10 +323,12 @@ pub struct PriceDiscovery {
     pub last_updated: DateTime<Utc>,
 }
 
-/// Market order book and matching engine
+/// Market order book and matching engine with P2P integration
 pub struct Market {
     db: Mutex<Connection>,
     reputation: Reputation,
+    // p2p_network: Option<Arc<Mutex<crate::p2p::P2PNetwork>>>,  // Temporarily disabled
+    pricing_engine: Arc<crate::pricing::PricingEngine>,
 }
 
 impl Market {
@@ -335,11 +336,39 @@ impl Market {
     pub async fn new(db_path: &str) -> Result<Self> {
         let db = Connection::open(db_path)?;
         let reputation = Reputation::new(db_path).await?;
+        let pricing_engine = Arc::new(crate::pricing::PricingEngine::new(db_path).await?);
+        pricing_engine.init_schema().await?;
+        
         Ok(Self {
             db: Mutex::new(db),
             reputation,
+            // p2p_network: None,  // Temporarily disabled
+            pricing_engine,
         })
     }
+    
+    /*
+    /// Create a new market instance with P2P networking - DISABLED
+    pub async fn new_with_p2p(
+        db_path: &str, 
+        p2p_config: crate::p2p::P2PConfig
+    ) -> Result<Self> {
+        let mut market = Self::new(db_path).await?;
+        
+        let p2p_network = crate::p2p::P2PNetwork::new(p2p_config).await?;
+        market.p2p_network = Some(Arc::new(Mutex::new(p2p_network)));
+        
+        Ok(market)
+    }
+    
+    /// Enable P2P networking - DISABLED
+    pub async fn enable_p2p(&mut self) -> Result<()> {
+        if let Some(ref p2p) = self.p2p_network {
+            p2p.lock().await.start().await?;
+        }
+        Ok(())
+    }
+    */
 
     /// Initialize database schema
     pub async fn init_schema(&self) -> Result<()> {
@@ -531,6 +560,15 @@ impl Market {
 
         drop(db);
 
+        // Broadcast order to P2P network if enabled - DISABLED
+        /*
+        if let Some(ref p2p) = self.p2p_network {
+            if let Err(e) = p2p.lock().await.broadcast_order(order.clone()).await {
+                tracing::warn!("Failed to broadcast order to P2P network: {}", e);
+            }
+        }
+        */
+
         // For compute requests, start a first-accept auction
         if matches!(order.order_type, OrderType::RequestCompute) {
             self.start_auction(&order).await?;
@@ -539,8 +577,9 @@ impl Market {
             self.match_offer(&order).await?;
         }
 
-        // Update price discovery
+        // Update price discovery and market conditions
         self.update_price_discovery(&order.task_spec.task_type).await?;
+        self.update_market_conditions().await?;
 
         Ok(order)
     }
@@ -678,6 +717,17 @@ impl Market {
                         "Expired" => OrderStatus::Expired,
                         _ => OrderStatus::Active,
                     },
+                    task_spec: ComputeTaskSpec {
+                        task_type: "default".to_string(),
+                        compute_units: 1,
+                        max_duration_secs: 3600,
+                        required_capabilities: vec![],
+                        min_reputation: None,
+                        privacy_level: PrivacyLevel::Public,
+                        encrypted_payload: None,
+                    },
+                    sla_spec: None,
+                    reputation_weight: 1.0,
                     expires_at: row.get::<_, Option<String>>(7)?
                         .map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
                     created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
@@ -686,6 +736,7 @@ impl Market {
                     updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
                         .unwrap()
                         .with_timezone(&Utc),
+                    signature: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -722,6 +773,17 @@ impl Market {
                         "PartiallyFilled" => OrderStatus::PartiallyFilled,
                         _ => OrderStatus::Active,
                     },
+                    task_spec: ComputeTaskSpec {
+                        task_type: "default".to_string(),
+                        compute_units: 1,
+                        max_duration_secs: 3600,
+                        required_capabilities: vec![],
+                        min_reputation: None,
+                        privacy_level: PrivacyLevel::Public,
+                        encrypted_payload: None,
+                    },
+                    sla_spec: None,
+                    reputation_weight: 1.0,
                     expires_at: row.get::<_, Option<String>>(7)?
                         .map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
                     created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
@@ -730,6 +792,7 @@ impl Market {
                     updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
                         .unwrap()
                         .with_timezone(&Utc),
+                    signature: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -759,6 +822,17 @@ impl Market {
                         "PartiallyFilled" => OrderStatus::PartiallyFilled,
                         _ => OrderStatus::Active,
                     },
+                    task_spec: ComputeTaskSpec {
+                        task_type: "default".to_string(),
+                        compute_units: 1,
+                        max_duration_secs: 3600,
+                        required_capabilities: vec![],
+                        min_reputation: None,
+                        privacy_level: PrivacyLevel::Public,
+                        encrypted_payload: None,
+                    },
+                    sla_spec: None,
+                    reputation_weight: 1.0,
                     expires_at: row.get::<_, Option<String>>(7)?
                         .map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
                     created_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
@@ -767,6 +841,7 @@ impl Market {
                     updated_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(9)?)
                         .unwrap()
                         .with_timezone(&Utc),
+                    signature: None,
                 })
             })?
             .collect::<std::result::Result<Vec<_>, _>>()?;
@@ -863,7 +938,7 @@ impl Market {
             )?
             .collect::<std::result::Result<Vec<_>, _>>()?;
 
-        drop(db);
+        // drop(db);  // Removed to avoid borrowing conflicts
 
         // Try to match with each suitable auction
         for (mut auction, requester, request_price, request_units, request_task_spec) in auctions {
@@ -1116,10 +1191,9 @@ impl Market {
     ) -> Result<Vec<TaskAssignment>> {
         let db = self.db.lock().await;
         
-        let (query, params): (String, Vec<&dyn rusqlite::ToSql>) = if let Some(trader) = trader {
+        if let Some(trader) = trader {
             let trader_str = trader.to_string();
-            (
-                r#"
+            let query = r#"
                 SELECT id, request_id, offer_id, requester, provider,
                        price_per_unit, compute_units, total_cost,
                        assigned_at, started_at, completed_at,
@@ -1128,27 +1202,9 @@ impl Market {
                 WHERE requester = ?1 OR provider = ?1
                 ORDER BY assigned_at DESC
                 LIMIT ?2
-                "#.to_string(),
-                vec![&trader_str as &dyn rusqlite::ToSql, &limit],
-            )
-        } else {
-            (
-                r#"
-                SELECT id, request_id, offer_id, requester, provider,
-                       price_per_unit, compute_units, total_cost,
-                       assigned_at, started_at, completed_at,
-                       sla_metrics, status
-                FROM task_assignments
-                ORDER BY assigned_at DESC
-                LIMIT ?1
-                "#.to_string(),
-                vec![&limit as &dyn rusqlite::ToSql],
-            )
-        };
-
-        let mut stmt = db.prepare(&query)?;
-        let assignments = stmt
-            .query_map(params.as_slice(), |row| {
+                "#;
+            let mut stmt = db.prepare(query)?;
+            let assignments = stmt.query_map(params![trader_str, limit as i64], |row| {
                 Ok(TaskAssignment {
                     id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
                     request_id: Uuid::parse_str(&row.get::<_, String>(1)?).unwrap(),
@@ -1176,10 +1232,50 @@ impl Market {
                         _ => AssignmentStatus::Assigned,
                     },
                 })
-            })?
-            .collect::<std::result::Result<Vec<_>, _>>()?;
-
-        Ok(assignments)
+            })?.collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(assignments)
+        } else {
+            let query = r#"
+                SELECT id, request_id, offer_id, requester, provider,
+                       price_per_unit, compute_units, total_cost,
+                       assigned_at, started_at, completed_at,
+                       sla_metrics, status
+                FROM task_assignments
+                ORDER BY assigned_at DESC
+                LIMIT ?1
+                "#;
+            let mut stmt = db.prepare(query)?;
+            let assignments = stmt.query_map(params![limit as i64], |row| {
+                Ok(TaskAssignment {
+                    id: Uuid::parse_str(&row.get::<_, String>(0)?).unwrap(),
+                    request_id: Uuid::parse_str(&row.get::<_, String>(1)?).unwrap(),
+                    offer_id: Uuid::parse_str(&row.get::<_, String>(2)?).unwrap(),
+                    requester: row.get::<_, String>(3)?.parse().unwrap(),
+                    provider: row.get::<_, String>(4)?.parse().unwrap(),
+                    price_per_unit: row.get::<_, i64>(5)? as u64,
+                    compute_units: row.get::<_, i64>(6)? as u64,
+                    total_cost: row.get::<_, i64>(7)? as u64,
+                    assigned_at: DateTime::parse_from_rfc3339(&row.get::<_, String>(8)?)
+                        .unwrap()
+                        .with_timezone(&Utc),
+                    started_at: row.get::<_, Option<String>>(9)?
+                        .map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
+                    completed_at: row.get::<_, Option<String>>(10)?
+                        .map(|s| DateTime::parse_from_rfc3339(&s).unwrap().with_timezone(&Utc)),
+                    sla_metrics: serde_json::from_str(&row.get::<_, String>(11)?).unwrap(),
+                    status: match row.get::<_, String>(12)?.as_str() {
+                        "Assigned" => AssignmentStatus::Assigned,
+                        "InProgress" => AssignmentStatus::InProgress,
+                        "Completed" => AssignmentStatus::Completed,
+                        "Failed" => AssignmentStatus::Failed,
+                        "SLAViolated" => AssignmentStatus::SLAViolated,
+                        "Disputed" => AssignmentStatus::Disputed,
+                        _ => AssignmentStatus::Assigned,
+                    },
+                })
+            })?.collect::<std::result::Result<Vec<_>, _>>()?;
+            Ok(assignments)
+        }
     }
 
     /// Start task execution
@@ -1357,6 +1453,341 @@ impl Market {
 
         Ok(())
     }
+
+    /// Update market conditions based on current activity
+    async fn update_market_conditions(&self) -> Result<()> {
+        let db = self.db.lock().await;
+        
+        // Count active orders and pending requests
+        let active_offers: i64 = db.query_row(
+            "SELECT COUNT(*) FROM orders WHERE order_type = 'OfferCompute' AND status IN ('Active', 'PartiallyFilled')",
+            [],
+            |row| row.get(0),
+        ).unwrap_or(0);
+
+        let pending_requests: i64 = db.query_row(
+            "SELECT COUNT(*) FROM orders WHERE order_type = 'RequestCompute' AND status IN ('Active', 'PartiallyFilled')",
+            [],
+            |row| row.get(0),
+        ).unwrap_or(0);
+
+        let total_assignments: i64 = db.query_row(
+            "SELECT COUNT(*) FROM task_assignments WHERE status = 'InProgress'",
+            [],
+            |row| row.get(0),
+        ).unwrap_or(0);
+
+        let avg_response_time: f64 = db.query_row(
+            r#"
+            SELECT AVG(CAST((julianday(completed_at) - julianday(assigned_at)) * 86400 AS REAL))
+            FROM task_assignments 
+            WHERE completed_at IS NOT NULL AND assigned_at > datetime('now', '-24 hours')
+            "#,
+            [],
+            |row| row.get(0),
+        ).unwrap_or(120.0);
+
+        drop(db);
+
+        // Calculate utilization and demand/supply levels
+        let total_capacity = active_offers.max(1);
+        let utilization_rate = total_assignments as f64 / total_capacity as f64;
+        
+        let demand_level = match pending_requests {
+            0..=5 => DemandLevel::VeryLow,
+            6..=15 => DemandLevel::Low,
+            16..=30 => DemandLevel::Normal,
+            31..=50 => DemandLevel::High,
+            _ => DemandLevel::VeryHigh,
+        };
+
+        let supply_level = match active_offers {
+            0..=5 => SupplyLevel::Scarce,
+            6..=15 => SupplyLevel::Limited,
+            16..=50 => SupplyLevel::Normal,
+            _ => SupplyLevel::Abundant,
+        };
+
+        let conditions = MarketConditions {
+            demand_level,
+            supply_level,
+            utilization_rate: utilization_rate.min(1.0),
+            active_providers: active_offers as u64,
+            pending_requests: pending_requests as u64,
+            avg_response_time,
+            avg_quality_score: 0.85, // Could be calculated from reputation scores
+            last_updated: Utc::now(),
+        };
+
+        self.pricing_engine.update_market_conditions(conditions).await?;
+        Ok(())
+    }
+
+    /// Get dynamic price quote for a task
+    pub async fn get_price_quote(
+        &self,
+        task_spec: &ComputeTaskSpec,
+        provider_reputation: Option<&crate::reputation::ReputationScore>,
+        urgency_level: f64,
+    ) -> Result<crate::pricing::PriceQuote> {
+        self.pricing_engine
+            .calculate_price(task_spec, PricingStrategy::Dynamic, provider_reputation, urgency_level)
+            .await
+    }
+
+    /// Get market making recommendations
+    pub async fn get_market_making_recommendations(&self, peer_id: &PeerId) -> Result<Vec<MarketMakingRecommendation>> {
+        let reputation = self.reputation.get_reputation(peer_id).await?;
+        let conditions = self.pricing_engine.get_market_conditions().await;
+        let mut recommendations = Vec::new();
+
+        // Analyze current order book for opportunities
+        let (bids, offers) = self.get_order_book().await?;
+        
+        // Look for spread opportunities
+        if !bids.is_empty() && !offers.is_empty() {
+            let best_bid = bids.iter().max_by_key(|b| b.price_per_unit).unwrap();
+            let best_offer = offers.iter().min_by_key(|o| o.price_per_unit).unwrap();
+            
+            if best_offer.price_per_unit > best_bid.price_per_unit {
+                let spread = best_offer.price_per_unit - best_bid.price_per_unit;
+                let mid_price = (best_bid.price_per_unit + best_offer.price_per_unit) / 2;
+                
+                recommendations.push(MarketMakingRecommendation {
+                    action: MarketAction::PlaceBid,
+                    price: mid_price - spread / 4,
+                    quantity: best_bid.remaining_units().min(best_offer.remaining_units()) / 2,
+                    reasoning: "Arbitrage opportunity - place bid below mid-market".to_string(),
+                    confidence: 0.8,
+                });
+
+                recommendations.push(MarketMakingRecommendation {
+                    action: MarketAction::PlaceOffer,
+                    price: mid_price + spread / 4,
+                    quantity: best_bid.remaining_units().min(best_offer.remaining_units()) / 2,
+                    reasoning: "Arbitrage opportunity - place offer above mid-market".to_string(),
+                    confidence: 0.8,
+                });
+            }
+        }
+
+        // High demand recommendations
+        if matches!(conditions.demand_level, DemandLevel::High | DemandLevel::VeryHigh) {
+            recommendations.push(MarketMakingRecommendation {
+                action: MarketAction::PlaceOffer,
+                price: 0, // To be calculated based on current prices + premium
+                quantity: reputation.score as u64 / 10, // Scale with reputation
+                reasoning: "High demand detected - increase supply".to_string(),
+                confidence: 0.7,
+            });
+        }
+
+        Ok(recommendations)
+    }
+
+    /// Execute automated market making
+    pub async fn execute_market_making(
+        &self,
+        peer_id: &PeerId,
+        strategy: MarketMakingStrategy,
+        signing_key: &SigningKey,
+    ) -> Result<Vec<Order>> {
+        let recommendations = self.get_market_making_recommendations(peer_id).await?;
+        let mut executed_orders = Vec::new();
+
+        for rec in recommendations {
+            if rec.confidence < strategy.min_confidence {
+                continue;
+            }
+
+            let task_spec = ComputeTaskSpec {
+                task_type: "general".to_string(), // Could be more specific
+                compute_units: rec.quantity,
+                max_duration_secs: 3600,
+                required_capabilities: vec!["general".to_string()],
+                min_reputation: None,
+                privacy_level: PrivacyLevel::Public,
+                encrypted_payload: None,
+            };
+
+            let order_type = match rec.action {
+                MarketAction::PlaceBid => OrderType::RequestCompute,
+                MarketAction::PlaceOffer => OrderType::OfferCompute,
+            };
+
+            let order = self.place_order(
+                order_type,
+                *peer_id,
+                rec.price,
+                rec.quantity,
+                task_spec,
+                None,
+                Some(Utc::now() + Duration::minutes(strategy.order_lifetime_minutes)),
+                Some(signing_key),
+            ).await?;
+
+            executed_orders.push(order);
+        }
+
+        Ok(executed_orders)
+    }
+
+    /// Get liquidity metrics for the market
+    pub async fn get_liquidity_metrics(&self) -> Result<LiquidityMetrics> {
+        let (bids, offers) = self.get_order_book().await?;
+        
+        let bid_volume: u64 = bids.iter().map(|b| b.remaining_units()).sum();
+        let offer_volume: u64 = offers.iter().map(|o| o.remaining_units()).sum();
+        
+        let best_bid_price = bids.iter().map(|b| b.price_per_unit).max().unwrap_or(0);
+        let best_offer_price = offers.iter().map(|o| o.price_per_unit).min().unwrap_or(u64::MAX);
+        
+        let spread = if best_offer_price != u64::MAX && best_bid_price > 0 {
+            Some(best_offer_price.saturating_sub(best_bid_price))
+        } else {
+            None
+        };
+
+        Ok(LiquidityMetrics {
+            bid_volume,
+            offer_volume,
+            total_volume: bid_volume + offer_volume,
+            spread,
+            bid_count: bids.len() as u64,
+            offer_count: offers.len() as u64,
+            depth_score: (bid_volume + offer_volume) as f64 / 1000.0, // Normalized depth
+        })
+    }
+
+    /// Get network-wide market statistics from P2P
+    pub async fn get_network_market_stats(&self) -> Result<NetworkMarketStats> {
+        /*
+        if let Some(ref p2p) = self.p2p_network {
+            let health = p2p.lock().await.network_health().await;
+            let connected_peers = p2p.lock().await.get_connected_peers().await;
+            
+            let total_active_orders: u64 = connected_peers
+                .values()
+                .map(|p| p.market_stats.active_orders)
+                .sum();
+            
+            let total_capacity: u64 = connected_peers
+                .values()
+                .map(|p| p.market_stats.available_capacity)
+                .sum();
+            
+            let avg_response_time = if !connected_peers.is_empty() {
+                connected_peers
+                    .values()
+                    .filter_map(|p| p.market_stats.avg_response_time)
+                    .sum::<f64>() / connected_peers.len() as f64
+            } else {
+                0.0
+            };
+
+            Ok(NetworkMarketStats {
+                total_peers: health.total_peers as u64,
+                active_peers: health.active_peers as u64,
+                total_active_orders,
+                total_capacity,
+                network_utilization: if total_capacity > 0 {
+                    total_active_orders as f64 / total_capacity as f64
+                } else {
+                    0.0
+                },
+                avg_network_response_time: avg_response_time,
+                network_health_score: health.avg_reputation,
+            })
+        } else */
+        {
+            // Return local stats only
+            let local_metrics = self.get_liquidity_metrics().await?;
+            Ok(NetworkMarketStats {
+                total_peers: 1,
+                active_peers: 1,
+                total_active_orders: local_metrics.bid_count + local_metrics.offer_count,
+                total_capacity: local_metrics.total_volume,
+                network_utilization: 0.5, // Default assumption
+                avg_network_response_time: 120.0,
+                network_health_score: 75.0,
+            })
+        }
+    }
+}
+
+/// Market making recommendation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketMakingRecommendation {
+    /// Recommended action
+    pub action: MarketAction,
+    /// Recommended price
+    pub price: u64,
+    /// Recommended quantity
+    pub quantity: u64,
+    /// Reasoning for the recommendation
+    pub reasoning: String,
+    /// Confidence level (0.0 to 1.0)
+    pub confidence: f64,
+}
+
+/// Market making action
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+pub enum MarketAction {
+    /// Place a bid order
+    PlaceBid,
+    /// Place an offer order
+    PlaceOffer,
+}
+
+/// Market making strategy configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MarketMakingStrategy {
+    /// Minimum confidence required to execute
+    pub min_confidence: f64,
+    /// Maximum spread to maintain
+    pub max_spread: u64,
+    /// Order lifetime in minutes
+    pub order_lifetime_minutes: i64,
+    /// Maximum position size
+    pub max_position: u64,
+}
+
+/// Liquidity metrics for the market
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LiquidityMetrics {
+    /// Total bid volume
+    pub bid_volume: u64,
+    /// Total offer volume
+    pub offer_volume: u64,
+    /// Total volume (bids + offers)
+    pub total_volume: u64,
+    /// Current spread (best offer - best bid)
+    pub spread: Option<u64>,
+    /// Number of bid orders
+    pub bid_count: u64,
+    /// Number of offer orders
+    pub offer_count: u64,
+    /// Market depth score
+    pub depth_score: f64,
+}
+
+/// Network-wide market statistics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NetworkMarketStats {
+    /// Total number of peers in network
+    pub total_peers: u64,
+    /// Number of active peers
+    pub active_peers: u64,
+    /// Total active orders across network
+    pub total_active_orders: u64,
+    /// Total compute capacity across network
+    pub total_capacity: u64,
+    /// Network utilization rate
+    pub network_utilization: f64,
+    /// Average response time across network
+    pub avg_network_response_time: f64,
+    /// Overall network health score
+    pub network_health_score: f64,
 }
 
 #[cfg(test)]

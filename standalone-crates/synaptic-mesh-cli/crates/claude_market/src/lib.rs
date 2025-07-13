@@ -46,11 +46,12 @@ pub use error::{MarketError, Result};
 // Module declarations
 pub mod error;
 pub mod wallet;
-// TODO: Re-enable when compilation issues are fixed
-// pub mod escrow;
-// pub mod ledger;
-// pub mod market;
-// pub mod reputation;
+pub mod escrow;
+pub mod ledger;
+pub mod market;
+pub mod reputation;
+// pub mod p2p;  // Temporarily disabled due to libp2p compatibility issues
+pub mod pricing;
 
 /// Market configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
