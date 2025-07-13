@@ -48,7 +48,7 @@ Instead of one massive billion+ parameter model, Synaptic Neural Mesh deploys **
 npx synaptic-mesh init
 ```
 
-*You're not just starting an app. You're growing a thought.* 🧠✨
+*Intelligence is the new currency and most people are broke* 🧠✨
 
 ---
 
