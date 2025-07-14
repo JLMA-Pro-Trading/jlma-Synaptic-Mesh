@@ -8,6 +8,36 @@
 cargo run --bin kimi -- "your question here"
 ```
 
+### ⚠️ **Important: Using `--` with cargo run**
+When using `cargo run`, you MUST include `--` before your arguments to separate cargo's arguments from the program's arguments:
+
+```bash
+# ✅ CORRECT - With -- separator
+cargo run --bin kimi -- --consensus "Design a neural network"
+
+# ❌ WRONG - Without -- separator (will fail)
+cargo run --bin kimi --consensus "Design a neural network"
+```
+
+The `--` tells cargo that everything after it should be passed to the kimi program, not interpreted as cargo arguments.
+
+### 🛠️ **Using the Convenience Wrapper Script**
+
+To make running kimi easier, use the included `kimi.sh` wrapper script:
+
+```bash
+# Make the script executable (only needed once)
+chmod +x kimi.sh
+
+# Then use it without worrying about -- separator
+./kimi.sh "What is machine learning?"
+./kimi.sh --expert coding "Write a function"
+./kimi.sh --consensus "Design a neural network"
+./kimi.sh --interactive
+```
+
+The wrapper automatically adds the `--` separator for you!
+
 ### 🚀 **Ready-to-Copy Commands**
 
 #### **Basic Questions**
@@ -96,7 +126,7 @@ cargo run --bin kimi -- --version
 ```bash
 $ cargo run --bin kimi -- --expert mathematics "What is 2+2?"
 
-🤖 Kimi-FANN Core v0.1.2 - Neural Inference Engine
+🤖 Kimi-FANN Core v0.1.3 - Neural Inference Engine
 ============================================================
 ❓ Question: What is 2+2?
 ------------------------------------------------------------
@@ -125,10 +155,13 @@ cargo build --bin kimi
 # Run tests
 cargo test
 
+# Use the wrapper script for convenience during development
+./kimi.sh "your question"
+
 # Install globally (after publishing)
 cargo install kimi-fann-core --bin kimi
 
-# Then use anywhere:
+# Then use anywhere (once installed):
 kimi "your question"
 ```
 

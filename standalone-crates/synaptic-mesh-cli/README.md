@@ -10,6 +10,7 @@
 - **Basic Commands**: Command parsing and routing *(✅ working)*  
 - **Placeholder Responses**: Mock implementations for testing *(⚠️ not real functionality)*
 - **Integration Framework**: Structures for future component integration *(🚧 incomplete)*
+- **Kimi-FANN Core**: Fully functional neural inference engine *(✅ working - see crates/kimi-fann-core)*
 
 ## Planned Features (Not Yet Implemented)
 
@@ -19,6 +20,22 @@
 - **Swarm Management**: Control distributed agent swarms *(not implemented)*
 - **QuDAG Networking**: Quantum-resistant DAG operations *(basic structure only)*
 - **Token Wallet**: Manage RUV tokens *(returns hardcoded balance of 1000)*
+
+## Kimi-FANN Core (Fully Functional!)
+
+While the main CLI is still in development, the **Kimi-FANN Core** component is fully functional and published on crates.io:
+
+```bash
+# Install Kimi neural inference engine
+cargo install kimi-fann-core
+
+# Use it immediately
+kimi "What is machine learning?"
+kimi --expert coding "Write a bubble sort"
+kimi --consensus "Design a neural network"
+```
+
+See [crates/kimi-fann-core](crates/kimi-fann-core) for full documentation.
 
 ## Development Installation
 
@@ -34,7 +51,7 @@ cargo build
 cargo run -- --help
 ```
 
-**Note**: This crate is not published to crates.io as it's not yet functional.
+**Note**: The main synaptic-mesh-cli crate is not published to crates.io as it's not yet functional. However, kimi-fann-core is fully functional and available on crates.io.
 
 ## Current Usage (Placeholder Responses)
 

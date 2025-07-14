@@ -1,6 +1,6 @@
 [package]
 name = "kimi-fann-core"
-version = "0.1.2"
+version = "0.1.4"
 edition = "2021"
 authors = ["Synaptic Neural Mesh Team"]
 description = "Optimized micro-expert neural architecture for Kimi-K2 WASM conversion with 5-10x performance improvements"
@@ -63,6 +63,7 @@ fastrand = "2.0"
 # High-performance hashing and collections for optimization
 rustc-hash = "1.1"
 lazy_static = "1.4"
+regex = "1.11.1"
 
 [dependencies.getrandom]
 version = "0.2"

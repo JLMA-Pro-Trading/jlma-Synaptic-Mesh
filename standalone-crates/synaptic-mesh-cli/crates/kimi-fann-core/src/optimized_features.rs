@@ -392,6 +392,9 @@ impl OptimizedPatternMatcher {
             .map(|&word| hash_string_fast(word))
             .collect();
         
+        // Special case: Check for arithmetic expressions for Mathematics domain
+        let has_arithmetic = self.detect_arithmetic_pattern(text);
+        
         // Calculate scores for each domain
         for (domain, pattern_hashes) in DOMAIN_PATTERN_HASHES.iter() {
             let mut matches = 0;
@@ -403,7 +406,13 @@ impl OptimizedPatternMatcher {
                 }
             }
             
-            let score = (matches as f32 / pattern_hashes.len() as f32).min(1.0);
+            let mut score = (matches as f32 / pattern_hashes.len() as f32).min(1.0);
+            
+            // Boost Mathematics domain score if arithmetic expression detected
+            if *domain == ExpertDomain::Mathematics && has_arithmetic {
+                score = (score + 0.8).min(1.0); // Strong boost for arithmetic
+            }
+            
             self.domain_scores.insert(*domain, score);
         }
         
@@ -415,6 +424,23 @@ impl OptimizedPatternMatcher {
         self.domain_scores.iter()
             .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(&domain, &score)| (domain, score))
+    }
+    
+    /// Detect arithmetic patterns in text
+    fn detect_arithmetic_pattern(&self, text: &str) -> bool {
+        // Check for numbers with operators
+        let has_operators = text.contains('+') || text.contains('-') || text.contains('*') || text.contains('/') || text.contains('^');
+        let has_numbers = text.chars().any(|c| c.is_numeric());
+        
+        if has_operators && has_numbers {
+            return true;
+        }
+        
+        // Check for arithmetic words
+        let text_lower = text.to_lowercase();
+        let arithmetic_words = ["plus", "minus", "times", "divided", "add", "subtract", "multiply", "divide", "sum", "difference"];
+        
+        has_numbers && arithmetic_words.iter().any(|&word| text_lower.contains(word))
     }
 }
 

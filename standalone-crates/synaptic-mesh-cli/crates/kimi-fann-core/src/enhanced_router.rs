@@ -202,19 +202,35 @@ impl EnhancedRouter {
     fn internal_classify_query(&self, query: &str) -> QueryClassification {
         let query_lower = query.to_lowercase();
         
+        // Check for arithmetic expressions first (highest priority for math)
+        let has_arithmetic = self.detect_arithmetic_expression(query);
+        
         // Simple keyword-based classification (would be more sophisticated in practice)
-        let (primary_domain, complexity) = if query_lower.contains("code") || query_lower.contains("function") || query_lower.contains("algorithm") {
-            (ExpertDomain::Coding, 0.8)
-        } else if query_lower.contains("math") || query_lower.contains("calculate") || query_lower.contains("equation") {
+        let (primary_domain, complexity) = if has_arithmetic {
+            (ExpertDomain::Mathematics, 0.9) // High confidence for arithmetic
+        } else if query_lower.contains("machine learning") || query_lower.contains("deep learning") || query_lower.contains("neural network") || query_lower.contains("ai") || query_lower.contains("artificial intelligence") {
+            (ExpertDomain::Reasoning, 0.9) // AI/ML topics go to reasoning domain
+        } else if query_lower.contains("code") || query_lower.contains("function") || query_lower.contains("algorithm") || query_lower.contains("program") || query_lower.contains("implement") || query_lower.contains("array") || query_lower.contains("loop") || query_lower.contains("data structure") || query_lower.contains("recursion") || query_lower.contains("linked list") || query_lower.contains("binary search") || query_lower.contains("sorting") || (query_lower.contains("explain") && (query_lower.contains("programming") || query_lower.contains("code"))) || (query_lower.contains("write") && (query_lower.contains("function") || query_lower.contains("code") || query_lower.contains("algorithm"))) {
+            (ExpertDomain::Coding, 0.85)
+        } else if query_lower.contains("math") || query_lower.contains("calculate") || query_lower.contains("equation") || query_lower.contains("solve") || query_lower.contains("integral") || query_lower.contains("derivative") || query_lower.contains("algebra") || query_lower.contains("geometry") || query_lower.contains("number") || query_lower.contains("sum") || query_lower.contains("subtract") || query_lower.contains("multiply") || query_lower.contains("divide") || query_lower.contains("calculus") || query_lower.contains("statistics") || query_lower.contains("probability") || query_lower.contains("pythagorean") || query_lower.contains("theorem") {
             (ExpertDomain::Mathematics, 0.7)
-        } else if query_lower.contains("tool") || query_lower.contains("api") || query_lower.contains("function") {
+        } else if query_lower.contains("tool") || query_lower.contains("api") || query_lower.contains("execute") || query_lower.contains("command") {
             (ExpertDomain::ToolUse, 0.6)
-        } else if query_lower.contains("reason") || query_lower.contains("logic") || query_lower.contains("analyze") {
+        } else if query_lower.contains("meaning of life") || query_lower.contains("consciousness") || query_lower.contains("free will") || query_lower.contains("reality") || query_lower.contains("existence") || query_lower.contains("philosophy") || query_lower.contains("purpose of") {
+            (ExpertDomain::Reasoning, 0.95) // Philosophical questions have very high confidence
+        } else if query_lower.contains("reason") || query_lower.contains("logic") || query_lower.contains("analyze") || query_lower.contains("think") || query_lower.contains("explain") {
             (ExpertDomain::Reasoning, 0.9)
-        } else if query_lower.contains("context") || query_lower.contains("remember") || query_lower.contains("previous") {
+        } else if query_lower.contains("context") || query_lower.contains("remember") || query_lower.contains("previous") || query_lower.contains("earlier") {
             (ExpertDomain::Context, 0.5)
+        } else if query_lower.contains("translate") || query_lower.contains("language") || query_lower.contains("grammar") || query_lower.contains("text") || query_lower.contains("nlp") || query_lower.contains("natural language") || (query_lower.contains("write") && !query_lower.contains("function") && !query_lower.contains("code")) {
+            (ExpertDomain::Language, 0.6)
+        } else if query_lower.contains("hello") || query_lower.contains("hi ") || query_lower.starts_with("hi") || query_lower.contains("greet") {
+            (ExpertDomain::Language, 0.8) // Greetings go to language domain
+        } else if query_lower.contains("what is") {
+            // Other "what is" questions go to reasoning
+            (ExpertDomain::Reasoning, 0.7)
         } else {
-            (ExpertDomain::Language, 0.4)
+            (ExpertDomain::Reasoning, 0.4) // Default to reasoning for general questions
         };
 
         // Determine secondary domains
@@ -322,6 +338,52 @@ impl EnhancedRouter {
         } else {
             self.stats.average_latency_ms = (self.stats.average_latency_ms * 0.9) + (new_latency * 0.1);
         }
+    }
+    
+    /// Detect arithmetic expressions in the query
+    fn detect_arithmetic_expression(&self, query: &str) -> bool {
+        // Simple pattern matching without regex
+        let has_operators = query.contains('+') || query.contains('-') || 
+                           query.contains('*') || query.contains('/') || 
+                           query.contains('^') || query.contains('=');
+        let has_numbers = query.chars().any(|c| c.is_numeric());
+        
+        // Direct check for arithmetic patterns
+        if has_operators && has_numbers {
+            // Basic validation: check if we have number-operator-number pattern
+            let chars: Vec<char> = query.chars().collect();
+            for i in 0..chars.len() {
+                if chars[i].is_numeric() {
+                    // Look ahead for operator and another number
+                    for j in i+1..chars.len() {
+                        if matches!(chars[j], '+' | '-' | '*' | '/' | '^') {
+                            // Look for number after operator
+                            for k in j+1..chars.len() {
+                                if chars[k].is_numeric() {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Check for common arithmetic words with numbers
+        let query_lower = query.to_lowercase();
+        let has_arithmetic_words = query_lower.contains("plus") || 
+                                  query_lower.contains("minus") || 
+                                  query_lower.contains("times") || 
+                                  query_lower.contains("divided") ||
+                                  query_lower.contains("add") ||
+                                  query_lower.contains("subtract") ||
+                                  query_lower.contains("multiply") ||
+                                  query_lower.contains("divide") ||
+                                  query_lower.contains("equals") ||
+                                  query_lower.contains("sum of") ||
+                                  query_lower.contains("difference");
+        
+        has_numbers && has_arithmetic_words
     }
 
     /// Process query with the given recommendation
@@ -459,5 +521,45 @@ mod tests {
             strategy.recommendations.get(&ExpertDomain::Mathematics),
             Some(StrategyAction::SellToMarket)
         ));
+    }
+    
+    #[test]
+    fn test_arithmetic_detection() {
+        let config = ProcessingConfig::new();
+        let router = EnhancedRouter::new(config);
+        
+        // Test basic arithmetic expressions
+        assert!(router.detect_arithmetic_expression("What is 2+2?"));
+        assert!(router.detect_arithmetic_expression("Calculate 5 * 3"));
+        assert!(router.detect_arithmetic_expression("10 - 7 equals what?"));
+        assert!(router.detect_arithmetic_expression("What is 100 / 4"));
+        
+        // Test word-based arithmetic
+        assert!(router.detect_arithmetic_expression("What is 5 plus 3?"));
+        assert!(router.detect_arithmetic_expression("Calculate 10 minus 2"));
+        assert!(router.detect_arithmetic_expression("What is 4 times 6?"));
+        
+        // Test non-arithmetic queries
+        assert!(!router.detect_arithmetic_expression("What is machine learning?"));
+        assert!(!router.detect_arithmetic_expression("How does AI work?"));
+        assert!(!router.detect_arithmetic_expression("Tell me about programming"));
+    }
+    
+    #[test]
+    fn test_mathematics_routing() {
+        let config = ProcessingConfig::new();
+        let router = EnhancedRouter::new(config);
+        
+        // Test that arithmetic expressions route to Mathematics
+        let classification = router.internal_classify_query("What is 2+2?");
+        assert_eq!(classification.primary_domain, ExpertDomain::Mathematics);
+        assert!(classification.complexity >= 0.9); // Should have high confidence
+        
+        let classification2 = router.internal_classify_query("Calculate 10 * 5");
+        assert_eq!(classification2.primary_domain, ExpertDomain::Mathematics);
+        
+        // Test that machine learning routes to Reasoning
+        let classification3 = router.internal_classify_query("What is machine learning?");
+        assert_eq!(classification3.primary_domain, ExpertDomain::Reasoning);
     }
 }
